@@ -88,7 +88,7 @@ ${table.indexes.map(idx => `CREATE INDEX ${idx.name} ON ${table.name} (${idx.fie
       {activeTab === 'erd' && (
         <div className="space-y-6">
           {/* Relational Table Selector Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-2">
             {databaseTables.map((tbl) => {
               const isSelected = tbl.name === selectedTable;
               return (
@@ -137,24 +137,26 @@ ${table.indexes.map(idx => `CREATE INDEX ${idx.name} ON ${table.name} (${idx.fie
             </div>
 
             {/* Columns Table */}
-            <div className="divide-y divide-neutral-100 dark:divide-neutral-800 border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden text-xs">
-              <div className="bg-neutral-50 dark:bg-neutral-950 px-4 py-2.5 font-semibold text-neutral-400 grid grid-cols-12 gap-2">
-                <span className="col-span-3">Column Name</span>
-                <span className="col-span-2">Data Type</span>
-                <span className="col-span-4">Constraints & Defaults</span>
-                <span className="col-span-3">Description</span>
-              </div>
-              {activeTableData.columns.map((col, idx) => (
-                <div key={idx} className="px-4 py-3 grid grid-cols-12 gap-2 items-center bg-white dark:bg-neutral-900 font-mono text-[11px]">
-                  <span className="col-span-3 font-bold text-neutral-900 dark:text-white flex items-center gap-1">
-                    {col.constraints.includes('PRIMARY KEY') && <Key className="w-3 h-3 text-amber-500 shrink-0" />}
-                    <span>{col.name}</span>
-                  </span>
-                  <span className="col-span-2 text-blue-600 dark:text-blue-400 font-semibold">{col.type}</span>
-                  <span className="col-span-4 text-neutral-500 dark:text-neutral-400 truncate">{col.constraints}</span>
-                  <span className="col-span-3 font-sans text-neutral-600 dark:text-neutral-400 truncate">{col.description}</span>
+            <div className="border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-x-auto text-xs">
+              <div className="min-w-[640px] divide-y divide-neutral-100 dark:divide-neutral-800">
+                <div className="bg-neutral-50 dark:bg-neutral-950 px-4 py-2.5 font-semibold text-neutral-400 grid grid-cols-12 gap-2">
+                  <span className="col-span-3">Column Name</span>
+                  <span className="col-span-2">Data Type</span>
+                  <span className="col-span-4">Constraints & Defaults</span>
+                  <span className="col-span-3">Description</span>
                 </div>
-              ))}
+                {activeTableData.columns.map((col, idx) => (
+                  <div key={idx} className="px-4 py-3 grid grid-cols-12 gap-2 items-center bg-white dark:bg-neutral-900 font-mono text-[11px]">
+                    <span className="col-span-3 font-bold text-neutral-900 dark:text-white flex items-center gap-1">
+                      {col.constraints.includes('PRIMARY KEY') && <Key className="w-3 h-3 text-amber-500 shrink-0" />}
+                      <span>{col.name}</span>
+                    </span>
+                    <span className="col-span-2 text-blue-600 dark:text-blue-400 font-semibold">{col.type}</span>
+                    <span className="col-span-4 text-neutral-500 dark:text-neutral-400 truncate">{col.constraints}</span>
+                    <span className="col-span-3 font-sans text-neutral-600 dark:text-neutral-400 truncate">{col.description}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Table Indexes */}
