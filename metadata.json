@@ -1,0 +1,7 @@
+{
+  "name": "IntegrityFlow — Engineering & Architecture Showcase",
+  "description": "Comprehensive technical architecture, interactive workflow diagrams, and engineering guide for IntegrityFlow AI-powered proctoring and exam security platform.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
