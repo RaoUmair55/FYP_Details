@@ -24,6 +24,27 @@ export const vivaQuestions: VivaQuestion[] = [
   },
   {
     category: 'AI & Algorithms',
+    question: 'How is audio evidence recorded and sent to the teacher dashboard for voice verification?',
+    shortAnswer: 'When a voice mismatch triggers, the exact 16kHz speech utterance is recorded as a .wav file, sent via multipart FormData, and played back directly on the proctor dashboard.',
+    deepDive: 'When a suspicious second voice is detected (similarity < 75%), voice_monitor.py writes the raw 16-bit mono PCM audio buffer out as a standalone .wav evidence clip under candidate-app/ai-module/audio_evidence/. The Electron IPC bridge attaches this audio file alongside the screenshot in a multipart FormData request. The server saves it to uploads/audio_clips/ or Cloudinary CDN. On the teacher dashboard, both the Live Alert Feed and Evidence Review Timeline render an embedded audio player with play/pause/seek controls and the exact match percentage, enabling instant human verification.',
+    codeOrFormulaRef: 'voice_monitor.py: _save_audio_clip(audio_bytes) -> <audio controls src={assetUrl(v.audioPath)} />'
+  },
+  {
+    category: 'AI & Algorithms',
+    question: 'How does MediaPipe 3D Head-Pose Estimation calculate Euler angles (pitch, yaw, roll) from a standard 2D webcam without depth sensors?',
+    shortAnswer: 'It uses Perspective-n-Point (PnP) pose solving against a generic 3D canonical face model using 6 specific facial landmarks.',
+    deepDive: 'MediaPipe Face Mesh extracts 468 2D landmarks (x, y) per frame. Six key anatomical landmarks (nose tip, chin, left eye corner, right eye corner, left mouth corner, right mouth corner) are mapped against known 3D canonical facial coordinates. OpenCV\'s cv2.solvePnP uses the camera intrinsic matrix to solve the rotation and translation vectors, which are converted to Euler angles using Rodrigues and rotation matrix decomposition. If head yaw exceeds ±24° or downward desk gaze exceeds 2.2s, a head_turn_away violation triggers.',
+    codeOrFormulaRef: 'cv2.solvePnP(face_3d, face_2d, cam_matrix, dist_matrix) -> Euler Angles'
+  },
+  {
+    category: 'AI & Algorithms',
+    question: 'What is Smart Inference Sampling, and how does it keep AI CPU utilization under 30% on low-end laptops?',
+    shortAnswer: 'Lightweight algorithms run every frame, while heavy neural networks execute on a disciplined sampled schedule.',
+    deepDive: 'Running full YOLOv8 object detection on every 30 FPS video frame would max out CPU at 100% and overheat laptops. IntegrityFlow implements Smart Sampling: (1) Lightweight Head-Pose runs every frame (30 FPS, ~5% CPU); (2) Face counting runs every 10 frames (~3 FPS, ~3% CPU); (3) Heavy INT8 quantized YOLOv8n object detection executes only once every 90 frames (~every 3 seconds, ~8% CPU); (4) WebRTC VAD runs continuously at <1% CPU and only invokes deep speaker verification when sustained speech occurs.',
+    codeOrFormulaRef: 'Schedule: 30 FPS Pose | 3 FPS FaceCount | 0.33 FPS YOLOv8n INT8'
+  },
+  {
+    category: 'AI & Algorithms',
     question: 'What is the mathematical rationale behind the Dynamic Exponential Severity Decay Engine, and why is its half-life set to ~30 minutes?',
     shortAnswer: 'It models real human error: isolated minor slips decay smoothly, while repeated or severe infractions escalate risk exponentially.',
     deepDive: 'Standard proctoring systems use linear summation: 10 minor head turns over a 2-hour exam would sum to the same score as 10 consecutive head turns in 60 seconds. IntegrityFlow uses exponential decay: S(t) = S0 * exp(-lambda * dt) with lambda = 0.0231/min (approx 30-minute half-life). An accidental glance away in minute 5 decays by 50% at minute 35 and 75% at minute 65. However, repeated infractions reinforce the cumulative baseline, escalating the risk score and floating the student to the top of the examiner Priority Queue.',
@@ -44,20 +65,6 @@ export const vivaQuestions: VivaQuestion[] = [
     codeOrFormulaRef: 'dashboard/src/context/AuthContext.jsx (Axios 401 Interceptor)'
   },
   {
-    category: 'Performance & Database',
-    question: 'How did your compound B-Tree indexes improve database performance during high-concurrency 40-student load testing?',
-    shortAnswer: 'Indexes converted full collection/table scans (COLLSCAN) into targeted index scans (IXSCAN), cutting P99 write latency by 30.4% and peak read latency by 74.8%.',
-    deepDive: 'Without indexes, querying GET /violations/priority-queue (which sorts by severity DESC, timestamp DESC) or filtering by sessionId required MongoDB to scan every single document (COLLSCAN) across all active candidates. Under 40 simultaneous candidate writes, this led to CPU spikes and read latency of 1230ms. By introducing compound indexes on { sessionId: 1, timestamp: -1 }, { reviewed: 1 }, and { examId: 1, status: 1 }, execution plans switched to IXSCAN, dropping total docs examined to match nReturned and reducing peak write latency by 54.1% and peak read latency to 310ms.',
-    codeOrFormulaRef: 'violationSchema.index({ sessionId: 1, timestamp: -1 });'
-  },
-  {
-    category: 'Architecture',
-    question: 'Why does IntegrityFlow support a "Physical Lab Mode", and how does it differ from "Remote Online Mode"?',
-    shortAnswer: 'Physical Lab Mode enables university computer labs lacking webcams or microphones to still enforce desktop shell security, USB blockades, and process whitelists.',
-    deepDive: 'University on-campus computer labs usually feature desktop tower PCs without attached webcams or microphones. Forcing webcam checks would prevent running exams in computer labs. IntegrityFlow introduces Dual-Environment Exam Modes: when an instructor selects "Physical Lab Mode", the candidate self-check automatically bypasses camera and microphone checks while strictly enforcing the Process Whitelist, Pre-Existing File Timestamp Guard, USB Removable Storage Guard, Multi-Display Block, and OS Clipboard Lockdown.',
-    codeOrFormulaRef: 'exam.examType === "physical_lab" -> markStepBypassed()'
-  },
-  {
     category: 'Security & Privacy',
     question: 'How do you detect candidates who attempt to open pre-written solution files inside allowed editors like Microsoft Word or VS Code?',
     shortAnswer: 'The Pre-Existing File Timestamp Guard inspects open file handles and flags any file whose modification time is earlier than the exam start time.',
@@ -65,10 +72,38 @@ export const vivaQuestions: VivaQuestion[] = [
     codeOrFormulaRef: 'mtime = os.path.getmtime(path); if mtime < exam_start_time: flag_violation()'
   },
   {
+    category: 'Security & Privacy',
+    question: 'How does IntegrityFlow enforce OS clipboard lockdown and prevent copy-pasting code from external tools?',
+    shortAnswer: 'Electron intercepts clipboard paste events, hooks keyboard accelerators (Ctrl+V, Win+V), and flushes external clipboard content.',
+    deepDive: 'When the exam begins, Electron registers global keyboard shortcut hooks (intercepting Alt+Tab, Win+Tab, Ctrl+V, Windows Clipboard History Win+V) and listens to renderer paste events. Any clipboard data containing content not copied from within the exam window itself is sanitized, and the candidate is warned against clipboard injection.',
+    codeOrFormulaRef: 'electron/main.js: globalShortcut.register("Alt+Tab", ...)'
+  },
+  {
+    category: 'Performance & Database',
+    question: 'How did your compound B-Tree indexes improve database performance during high-concurrency 40-student load testing?',
+    shortAnswer: 'Indexes converted full collection scans (COLLSCAN) into targeted index scans (IXSCAN), cutting P99 write latency by 30.4% and peak read latency by 74.8%.',
+    deepDive: 'Without indexes, querying GET /violations/priority-queue (which sorts by severity DESC, timestamp DESC) or filtering by sessionId required MongoDB to scan every single document (COLLSCAN) across all active candidates. Under 40 simultaneous candidate writes, this led to CPU spikes and read latency of 1230ms. By introducing compound indexes on { sessionId: 1, timestamp: -1 }, { reviewed: 1 }, and { examId: 1, status: 1 }, execution plans switched to IXSCAN, dropping total docs examined to match nReturned and reducing peak write latency by 54.1% and peak read latency to 310ms.',
+    codeOrFormulaRef: 'violationSchema.index({ sessionId: 1, timestamp: -1 });'
+  },
+  {
     category: 'Performance & Database',
     question: 'What happens if a candidate experiences a campus Wi-Fi network drop for 5 minutes during an exam?',
     shortAnswer: 'The Electron IPC buffer writes failed violations atomically to disk and replays them chronologically upon reconnect, preserving original microsecond timestamps.',
     deepDive: 'When Wi-Fi drops, the individual monitors continue detecting infractions and dispatching them to the local receiver. The forwarder catches network errors and appends events to an atomic JSON queue under Electron userData. When connectivity resumes, a FIFO retry loop replays the queue. Crucially, each event preserves its authentic original_timestamp. This allows the backend Exponential Decay engine to calculate authentic risk progression as it physically occurred, rather than treating all replayed events as happening simultaneously upon reconnection.',
     codeOrFormulaRef: 'candidate-app/electron/ipc/violationBuffer.js (ORDER BY id ASC FIFO)'
+  },
+  {
+    category: 'Architecture',
+    question: 'How does the Question Paper Waiting Lobby (HTTP 423 Locked) protocol guarantee exam synchronization?',
+    shortAnswer: 'The server rejects premature paper downloads with HTTP 423 Locked until the instructor releases the paper, triggering an atomic WebSocket broadcast.',
+    deepDive: 'To prevent candidates from scraping the exam paper before the scheduled start time, GET /exam/:examId/paper verifies the paperReleased flag. If false, it returns HTTP 423 Locked with a synchronized countdown timer. When the instructor presses "Release Paper", the server atomically sets paperReleased: true, broadcasts the paperReleased event to all active candidate apps via Socket.io, and synchronizes the exam duration clock.',
+    codeOrFormulaRef: 'server/src/routes/examPaper.js (res.status(423).json({ locked: true }))'
+  },
+  {
+    category: 'Architecture',
+    question: 'Why does IntegrityFlow support a "Physical Lab Mode", and how does it differ from "Remote Online Mode"?',
+    shortAnswer: 'Physical Lab Mode enables university computer labs lacking webcams or microphones to still enforce desktop shell security, USB blockades, and process whitelists.',
+    deepDive: 'University on-campus computer labs usually feature desktop tower PCs without attached webcams or microphones. Forcing webcam checks would prevent running exams in computer labs. IntegrityFlow introduces Dual-Environment Exam Modes: when an instructor selects "Physical Lab Mode", the candidate self-check automatically bypasses camera and microphone checks while strictly enforcing the Process Whitelist, Pre-Existing File Timestamp Guard, USB Removable Storage Guard, Multi-Display Block, and OS Clipboard Lockdown.',
+    codeOrFormulaRef: 'exam.examType === "physical_lab" -> markStepBypassed()'
   }
 ];
