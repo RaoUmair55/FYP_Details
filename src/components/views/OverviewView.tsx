@@ -76,7 +76,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigateTab, onSel
               className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-neutral-800 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-lg transition-colors border border-neutral-200 dark:border-neutral-700"
             >
               <Layers className="w-4 h-4 text-neutral-500" />
-              <span>Inspect All 12 Modules</span>
+              <span>Inspect All 13 Core Modules</span>
             </button>
           </div>
         </div>

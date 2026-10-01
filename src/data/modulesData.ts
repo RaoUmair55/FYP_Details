@@ -70,83 +70,88 @@ export const modulesData: ModuleDetail[] = [
   {
     id: 'module-2-vision',
     number: 2,
-    title: 'AI Computer Vision Monitoring & Lens Defense',
-    shortDesc: 'Multi-signal head pose yaw/pitch tracking, gaze direction, multi-person/missing-face detection, and 1.2s camera lens occlusion defense.',
-    category: 'AI Monitoring',
+    title: 'AI Computer Vision Monitoring & 3D Head Pose Perspective-n-Point',
+    shortDesc: 'Multi-signal 3D head pose yaw/pitch tracking via solvePnP, gaze direction, multi-person/missing-face detection, and 1.2s camera lens occlusion defense.',
     purpose: 'Provides continuous in-memory visual proctoring to detect looking away, notes placed above the screen, third parties in the room, and deliberate physical tampering with the webcam.',
-    howItWorks: 'Processes the live webcam stream in-memory. Runs MediaPipe FaceMesh (with OpenCV Haar cascade fallback) to extract 468 3D landmarks for lateral head yaw and sustained upward pitch (detecting glancing at notes placed above the monitor with 1.2s continuity check). Employs an ONNX Runtime YOLO neural network sampled every 3rd frame to detect unauthorized objects (smartphones, books). Simultaneously runs a photometric luminance and spatial variance algorithm to detect blacked-out or covered webcam lenses within 1.2 seconds.',
+    category: 'AI Monitoring',
+    howItWorks: 'Processes the live webcam stream strictly in volatile RAM. Runs MediaPipe FaceMesh (extracting 468 3D landmarks) mapped to a canonical 3D facial coordinate model. Solves Perspective-n-Point (cv2.solvePnP) using the estimated camera intrinsic matrix to compute rotation vectors, converting them to Euler angles (yaw, pitch, roll). Flags lateral head turns beyond ±28° and sustained upward pitch beyond 22° for >1.2s (glancing at cheat-sheets taped above monitor). Simultaneously computes photometric luminance mean and standard deviation: if mean brightness < 15 or spatial variance < 10 for >1.2s, flags camera_occluded_or_dark tampering.',
     technicalImplementation: {
       language: 'Python 3.10 / C++ SIMD',
-      libraries: ['OpenCV (cv2)', 'MediaPipe FaceMesh', 'ONNX Runtime', 'NumPy'],
+      libraries: ['OpenCV (cv2)', 'MediaPipe FaceMesh', 'NumPy'],
       coreFiles: ['ai-module/ai_monitor.py', 'ai-module/services/capture/webcam_provider.py'],
       mechanisms: [
-        'Perspective-n-Point (solvePnP) head pose estimation computing Euler angles (yaw, pitch, roll)',
-        'Upward pitch sustained threshold: sustained_upward_seconds = 1.2s with neck-tilt continuity',
-        'ONNX Runtime clamped to 2 CPU threads with SIMD blob extraction, sampled every 3rd frame',
-        'Photometric luminance check: flags camera_occluded_or_dark if mean brightness < 15 or spatial variance < 10 for 1.2s',
-        'In-Memory Only: Frames are processed strictly in RAM and discarded immediately unless a violation occurs'
+        'Perspective-n-Point (solvePnP) head pose estimation: maps 6 key facial landmarks (nose tip, chin, eye corners, mouth corners) to 3D world space',
+        'Euler angle decomposition: yaw (turning left/right), pitch (nodding/glancing up-down), roll (tilting ear to shoulder)',
+        '1.2-second sustained upward pitch continuity check to eliminate false positives from momentary natural blinking',
+        'Photometric luminance check: mean brightness < 15 or spatial variance < 10 for 1.2s triggers camera_occluded_or_dark',
+        'In-Memory Only: Frames are processed strictly in volatile RAM and discarded in milliseconds without saving continuous video'
       ]
     },
     keyFormulasOrRules: [
       {
-        name: 'Head Pose Euler Angle Limits',
-        formula: '|\\text{Yaw}| > 28^\\circ \\quad \\text{or} \\quad \\text{Pitch} > 22^\\circ \\; (\\Delta t \\ge 1.2\\text{s})',
-        explanation: 'Lateral rotation beyond 28 degrees triggers head_turn_away. Upward pitch beyond 22 degrees sustained for 1.2 seconds flags looking above screen.'
+        name: 'Perspective-n-Point Projection & Euler Limits',
+        formula: 's \\begin{bmatrix} u \\\\ v \\\\ 1 \\end{bmatrix} = \\mathbf{K} \\begin{bmatrix} \\mathbf{R} & \\mathbf{t} \\end{bmatrix} \\begin{bmatrix} X_w \\\\ Y_w \\\\ Z_w \\\\ 1 \\end{bmatrix}, \\quad |\\text{Yaw}| > 28^\\circ \\; \\lor \\; \\text{Pitch} > 22^\\circ',
+        explanation: 'Where K is camera matrix, R is rotation matrix derived via Rodrigues formula, and t is translation vector.'
       },
       {
-        name: 'Lens Occlusion Photometric Check',
-        formula: '\\mu = \\frac{1}{N}\\sum I(x,y) < 15 \\quad \\lor \\quad \\sigma^2 = \\frac{1}{N}\\sum (I(x,y) - \\mu)^2 < 10',
-        explanation: 'Detects deliberate tape, sticky notes, or darkness covering the webcam within 1.2 seconds.'
+        name: 'Lens Occlusion Photometric Invariant',
+        formula: '\\mu = \\frac{1}{N}\\sum I(x,y) < 15 \\quad \\lor \\quad \\sigma^2 = \\frac{1}{N}\\sum (I(x,y) - \\mu)^2 < 10 \\quad (\\Delta t \\ge 1.2\\text{s})',
+        explanation: 'Detects physical tape, fingers, sticky notes, or covered webcam lenses within 1.2 seconds.'
       }
     ],
     architectureFit: 'Runs inside the Python daemon. Bypassed automatically when an exam is created in "Physical Lab Mode", avoiding missing webcam crashes on lab desktop towers.',
     inputs: ['Raw OpenCV VideoCapture frames (1280x720 @ 30fps)'],
-    outputs: ['Violation triggers: head_turn_away, second_person_detected, no_face_detected, unauthorized_object, camera_occluded_or_dark', 'Annotated bounding box evidence image'],
+    outputs: ['Violation triggers: head_turn_away, second_person_detected, no_face_detected, camera_occluded_or_dark', 'Annotated bounding box evidence image'],
     edgeCasesHandled: [
       'Natural blinking and brief desk glances: debounced so normal keyboard lookups do not cause false positives',
       'Variable lighting: adaptive histogram equalization prevents ambient shadow from triggering occlusion alarms',
-      'CPU budget enforcement: limits inference threads to guarantee <35% overall system CPU usage'
+      'Missing webcam hardware: physical_lab mode automatically bypasses vision modules on computer lab PCs'
     ],
     codeSnippet: {
       language: 'python',
       filename: 'ai-module/ai_monitor.py',
-      code: `def check_lens_and_pose(frame, landmarks):
+      code: `def check_lens_and_pose(frame, landmarks_2d):
+    # 1. Photometric Lens Tampering Check
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     mean_val, std_dev = cv2.meanStdDev(gray)
     if mean_val[0][0] < 15.0 or std_dev[0][0] < 3.0:
         return 'camera_occluded_or_dark', 3
 
-    # Solve PnP for 3D Head Pose
+    # 2. Perspective-n-Point 3D Head Pose
     success, rot_vec, trans_vec = cv2.solvePnP(
-        model_points_3d, landmarks_2d, camera_matrix, dist_coeffs
+        model_points_3d, landmarks_2d, camera_matrix, dist_coeffs, flags=cv2.SOLVEPNP_ITERATIVE
     )
-    yaw, pitch, roll = rotation_vector_to_euler(rot_vec)
+    rot_mat, _ = cv2.Rodrigues(rot_vec)
+    angles, _, _, _, _, _ = cv2.RQDecomp3x3(rot_mat)
+    pitch, yaw, roll = angles[0] * 360, angles[1] * 360, angles[2] * 360
+    
     if abs(yaw) > 28.0:
         return 'head_turn_away', 2
-    if pitch > 22.0: # looking above monitor
+    if pitch > 22.0: # sustained upward glance
         return 'head_tilt_upward', 2
     return None, 0`,
-      explanation: 'Evaluates frame luminance variance for lens tampering and computes 3D head pose Euler angles.'
+      explanation: 'Evaluates frame luminance variance for lens tampering and computes 3D head pose Euler angles via solvePnP.'
     }
   },
   {
     id: 'module-3-voice',
     number: 3,
-    title: 'Two-Stage Acoustic Voice Pipeline & Speaker Verification',
-    shortDesc: 'Lightweight WebRTC VAD gating (<1% CPU) coupled with Resemblyzer 256-d neural speaker verification against a 4s self-check reference.',
+    title: 'Two-Stage Acoustic Voice Pipeline & Audio Evidence Verification',
+    shortDesc: 'Lightweight WebRTC VAD gating (<1% CPU) coupled with Resemblyzer 256-d neural speaker verification and standalone .wav audio evidence recording.',
     category: 'AI Monitoring',
-    purpose: 'Detects unauthorized third-party speech in the room while tolerating candidate self-speech (reading questions aloud or murmuring calculations) without CPU exhaustion.',
-    howItWorks: 'Audio is sampled in 30ms frames at 16kHz mono. Stage 1 (WebRTC VAD) runs continuously at <0.5% CPU. If sustained speech is detected for >2.0 seconds, Stage 2 is triggered. Stage 2 passes the audio segment into Resemblyzer to extract a 256-dimensional neural voice embedding and computes the Cosine Similarity against the candidate reference embedding recorded during pre-exam self-check. If similarity is <0.75 across 2 consecutive segments, a second_voice_detected (Severity 3) violation is fired.',
+    purpose: 'Detects unauthorized third-party speech in the room while tolerating candidate self-speech (reading questions aloud) and captures playable audio evidence for examiner verification.',
+    howItWorks: 'Audio is sampled in 30ms frames at 16kHz mono. Stage 1 (WebRTC VAD) runs continuously at <0.5% CPU. If sustained speech is detected for >2.0 seconds, Stage 2 is triggered. Stage 2 passes the audio segment into Resemblyzer to extract a 256-dimensional neural voice embedding and computes the Cosine Similarity against the candidate reference embedding recorded during pre-exam self-check. If similarity is <0.75 across 2 consecutive segments, a second_voice_detected (Severity 3) violation is fired. Crucially, the raw 16kHz speech segment is saved as a .wav audio clip and uploaded to the server, enabling examiners to listen and verify the audio directly on the dashboard.',
     technicalImplementation: {
       language: 'Python 3.10 / C++ WebRTC bindings',
-      libraries: ['webrtcvad-wheels', 'resemblyzer', 'sounddevice', 'numpy', 'scipy'],
-      coreFiles: ['ai-module/voice_monitor.py', 'ai-module/server.py', 'renderer/selfCheck.js'],
+      libraries: ['webrtcvad-wheels', 'resemblyzer', 'sounddevice', 'numpy', 'scipy', 'wave'],
+      coreFiles: ['ai-module/voice_monitor.py', 'ai-module/server.py', 'candidate-app/electron/ipc/pythonBridge.js', 'dashboard/src/components/EvidenceViewer.jsx'],
       mechanisms: [
         'Stage 1: WebRTC VAD (Mode 2) processes 480 samples per 30ms frame with 2.0s sustained threshold',
         'Transient filter: isolates coughs, sneezes, keystrokes, and throat clearing without running neural inference',
         'Stage 2: Resemblyzer VoiceEncoder extracts 256-d normalized d-vector embedding',
-        'Cosine Similarity comparison: candidate self-speech produces similarity >= 0.75 and resets mismatch counter to 0',
-        'Debouncing: requires 2 consecutive mismatched segments to trigger second_voice_detected'
+        'Cosine Similarity comparison: candidate self-speech produces similarity >= 0.75 (True Negative)',
+        'Standalone Audio Evidence Recording: writes raw 16kHz PCM audio to .wav and streams via multipart FormData',
+        'Teacher Dashboard Audio Player: interactive waveform/audio controls with similarity percentage display'
       ]
     },
     keyFormulasOrRules: [
@@ -158,12 +163,12 @@ export const modulesData: ModuleDetail[] = [
       {
         name: 'Gated Execution Architecture',
         formula: '\\text{Execute Stage 2} \\iff \\tau_{\\text{VAD}} \\ge 2.0\\text{s}',
-        explanation: 'Keeps heavy neural speech encoding asleep 98% of the time, preserving CPU budget.'
+        explanation: 'Keeps heavy neural speech encoding asleep 98% of the time, preserving CPU budget under 1%.'
       }
     ],
     architectureFit: 'Calibrated during Self-Check Step 3 where the student reads a 4-second prompt sentence. In physical lab mode, voice checks are automatically bypassed.',
     inputs: ['16kHz mono PCM microphone audio stream', 'Candidate 256-d reference voice embedding vector'],
-    outputs: ['Violation trigger: second_voice_detected (Severity 3) with similarity_score and duration_seconds'],
+    outputs: ['Violation trigger: second_voice_detected (Severity 3) with similarity_score', 'Recorded .wav audio evidence clip'],
     edgeCasesHandled: [
       'Student reading questions aloud: matches candidate embedding vector and triggers no alert',
       'Desk taps, pencil clicks, coughing: WebRTC VAD gates out non-sustained transients before neural model runs',
@@ -174,32 +179,114 @@ export const modulesData: ModuleDetail[] = [
       filename: 'ai-module/voice_monitor.py',
       code: `def process_audio_buffer(self, audio_chunk):
     # Stage 1: WebRTC VAD Gate (<1% CPU)
-    is_speech = self.vad.is_speech(audio_chunk, 16000)
-    if is_speech:
+    if self.vad.is_speech(audio_chunk, 16000):
         self.speech_frames += 1
     else:
         self.speech_frames = max(0, self.speech_frames - 1)
 
-    # Check if sustained past 2.0 seconds (66 frames @ 30ms)
+    # Check if sustained past 2.0s (66 frames @ 30ms)
     if self.speech_frames >= 66:
         # Stage 2: Deep Speaker Verification
-        segment_emb = self.encoder.embed_utterance(self.get_audio_window())
-        sim = np.dot(self.ref_embedding, segment_emb) / (
+        raw_audio = self.get_audio_window()
+        segment_emb = self.encoder.embed_utterance(raw_audio)
+        sim = float(np.dot(self.ref_embedding, segment_emb) / (
             np.linalg.norm(self.ref_embedding) * np.linalg.norm(segment_emb)
-        )
+        ))
+        
         if sim < 0.75:
             self.consecutive_mismatches += 1
             if self.consecutive_mismatches >= 2:
-                self.emit_violation('second_voice_detected', severity=3, similarity=float(sim))
+                # Save standalone .wav audio evidence clip
+                audio_path = self.save_audio_clip(raw_audio)
+                self.emit_violation('second_voice_detected', severity=3, similarity=sim, audio_path=audio_path)
         else:
             self.consecutive_mismatches = 0
         self.speech_frames = 0`,
-      explanation: 'Two-stage gating: cheap VAD passes audio to Resemblyzer only upon sustained speech (>2.0s), comparing cosine similarity.'
+      explanation: 'Two-stage gating: cheap VAD passes audio to Resemblyzer only upon sustained speech (>2.0s), comparing cosine similarity and saving .wav evidence on mismatch.'
     }
   },
   {
-    id: 'module-4-capture',
+    id: 'module-4-yolo',
     number: 4,
+    title: 'YOLOv8 INT8 Neural Object Detection & Smart Inference Scheduling',
+    shortDesc: 'Anchor-free single-stage object detector quantized to INT8 ONNX (2.97MB) with SIMD vector execution and disciplined 0.33 FPS sampling (<8% CPU).',
+    category: 'AI Monitoring',
+    purpose: 'Detects unauthorized physical cheating aids (smartphones, textbooks, secondary computing devices) in real-time without GPU acceleration or thermal throttling on low-spec laptops.',
+    howItWorks: 'Every 90 video frames (~3.0s interval), a live webcam frame is preprocessed into a 640x640 RGB float32 blob via OpenCV cv2.dnn.blobFromImage. Inference runs on ONNX Runtime clamped to 2 CPU threads using the INT8 quantized model yolo26n_int8.onnx (compressed by 76% from 12.4MB to 2.97MB). The network yields an output tensor of shape (1, 84, 8400) transposed to (8400, 84), where each candidate contains 4 bounding box coordinates and 80 COCO class probabilities. The engine extracts target class scores (Class 67: cell phone, Class 73: book), filters by confidence threshold (>= 0.45 for phone, >= 0.40 for book), and applies Non-Maximum Suppression (NMS IoU = 0.45). Upon detection, it stamps the visual bounding box and fires an unauthorized_object violation (Severity 4).',
+    technicalImplementation: {
+      language: 'Python 3.10 / C++ SIMD (AVX2 / VNNI)',
+      libraries: ['onnxruntime', 'opencv-python (cv2)', 'numpy'],
+      coreFiles: ['ai-module/ai_monitor.py', 'ai-module/yolo26n_int8.onnx', 'ai-module/config/thresholds.json'],
+      mechanisms: [
+        'INT8 Dynamic Range Quantization: maps 32-bit floats to 8-bit integers via scale and zero-point calibration, achieving 3.2x CPU speedup (~18ms inference)',
+        'Zero-Copy SIMD Preprocessing: cv2.dnn.blobFromImage(frame, 1.0/255.0, (640, 640), swapRB=True)',
+        'Tensor Output Decoding: decodes 8400 candidate anchor-free boxes [x_center, y_center, w, h] to corner coordinates [x1, y1, x2, y2]',
+        'COCO Target Filtering: isolates class indices 67 (cell phone) and 73 (book) to ignore irrelevant everyday objects',
+        'Smart Inference Sampling: 30 FPS Head Pose | 3 FPS Face Count | 0.33 FPS YOLOv8 INT8 Object Detection'
+      ]
+    },
+    keyFormulasOrRules: [
+      {
+        name: 'INT8 Quantization Mapping Formulation',
+        formula: 'q = \\text{round}\\left(\\frac{r}{S}\\right) + Z, \\quad r \\approx S \\cdot (q - Z)',
+        explanation: 'Where r is the real float32 weight, S is the scale factor, Z is the zero-point integer, and q in [-128, 127] is the 8-bit quantized integer.'
+      },
+      {
+        name: 'Anchor-Free Tensor Dimension Transformation',
+        formula: '\\mathbf{Y} \\in \\mathbb{R}^{1 \\times 84 \\times 8400} \\xrightarrow{\\text{Transpose}} \\mathbf{Y}^T \\in \\mathbb{R}^{8400 \\times 84}',
+        explanation: 'Each row contains [x_c, y_c, w, h] (indices 0..3) and 80 class probability logits P(c_i) (indices 4..83).'
+      },
+      {
+        name: 'Smart CPU Budget Allocation',
+        formula: '\\text{CPU}_{\\text{total}} = \\text{CPU}_{\\text{Pose}}^{(30\\text{fps})} + \\text{CPU}_{\\text{Face}}^{(3\\text{fps})} + \\text{CPU}_{\\text{YOLO}}^{(0.33\\text{fps})} \\le 28\\%',
+        explanation: 'Decoupled multi-rate sampling keeps neural proctoring smooth on budget dual-core student laptops without fan noise or thermal lag.'
+      }
+    ],
+    architectureFit: 'Runs inside the local Python AIMonitor loop. When an unauthorized phone or book is detected, it generates a labeled bounding box JPEG via WebcamCaptureProvider and dispatches an HTTP POST payload to Electron port 8766.',
+    inputs: ['Raw BGR video frame (1280x720 @ 30fps)', 'COCO class targets: 67 (cell phone), 73 (book)', 'Confidence threshold config (phone: 0.45, book: 0.40)'],
+    outputs: ['Violation trigger: unauthorized_object (Severity 4)', 'Bounding box coordinates [x1, y1, x2, y2]', 'Annotated evidence JPEG with bounding box & confidence label'],
+    edgeCasesHandled: [
+      'Glints, reflections, and dark phone cases: multi-scale FPN backbone detects phone edges even under ambient screen glare',
+      'Candidate holding a calculator or pen: filtered out by high class-specific confidence threshold (0.45), preventing false positives during math exams',
+      'CPU overload safeguard: if system load exceeds threshold, YOLO interval automatically stretches to 120 frames (4.0s)'
+    ],
+    codeSnippet: {
+      language: 'python',
+      filename: 'ai-module/ai_monitor.py',
+      code: `def run_yolo_object_detection(self, frame):
+    # 1. Preprocess to 640x640 RGB blob
+    blob = cv2.dnn.blobFromImage(frame, 1.0/255.0, (640, 640), (0,0,0), swapRB=True, crop=False)
+    
+    # 2. Run INT8 Quantized ONNX Inference
+    outputs = self.yolo_session.run(None, {self.input_name: blob})
+    
+    # 3. Transpose output tensor (1, 84, 8400) -> (8400, 84)
+    predictions = np.transpose(outputs[0][0])
+    
+    boxes, confidences, class_ids = [], [], []
+    for pred in predictions:
+        classes_scores = pred[4:]
+        class_id = np.argmax(classes_scores)
+        score = classes_scores[class_id]
+        
+        # Filter for target classes: 67 (cell phone), 73 (book)
+        if class_id in [67, 73] and score >= self.thresholds.get(class_id, 0.45):
+            xc, yc, w, h = pred[0:4]
+            x1 = int((xc - w/2) * self.scale_x)
+            y1 = int((yc - h/2) * self.scale_y)
+            boxes.append([x1, y1, int(w * self.scale_x), int(h * self.scale_y)])
+            confidences.append(float(score))
+            class_ids.append(class_id)
+            
+    # 4. Non-Maximum Suppression (NMS)
+    indices = cv2.dnn.NMSBoxes(boxes, confidences, score_threshold=0.40, nms_threshold=0.45)
+    return [boxes[i] for i in indices], [confidences[i] for i in indices], [class_ids[i] for i in indices]`,
+      explanation: 'Preprocesses frame to 640x640, runs INT8 quantized ONNX session, decodes (8400, 84) output tensor, and filters target COCO classes via NMS.'
+    }
+  },
+  {
+    id: 'module-5-capture',
+    number: 5,
     title: 'Evidence Capture, Dynamic Downsampling & DIP Architecture',
     shortDesc: 'High-speed desktop and webcam frame capture (<200KB JPEG) with microsecond collision prevention based on the Dependency Inversion Principle.',
     category: 'Candidate App',
@@ -265,8 +352,8 @@ export const modulesData: ModuleDetail[] = [
     }
   },
   {
-    id: 'module-5-selfcheck',
-    number: 5,
+    id: 'module-6-selfcheck',
+    number: 6,
     title: 'Informed Consent, Identity & Dual-Mode Self-Check Flow',
     shortDesc: 'Section 10.4 Data Ethics compliance screen, institutional credential validation, and dual-mode staging area (Remote Online vs Physical Lab).',
     category: 'Candidate App',
@@ -325,8 +412,8 @@ export const modulesData: ModuleDetail[] = [
     }
   },
   {
-    id: 'module-6-decay-engine',
-    number: 6,
+    id: 'module-7-decay-engine',
+    number: 7,
     title: 'Dynamic Exponential Severity Decay & Risk Scoring Engine',
     shortDesc: 'Mathematical risk scoring algorithm with ~30-minute half-life (λ = 0.0231/min) balancing transient single mistakes against persistent cheating patterns.',
     category: 'Server & Database',
@@ -394,8 +481,8 @@ export const modulesData: ModuleDetail[] = [
     }
   },
   {
-    id: 'module-7-workspace',
-    number: 7,
+    id: 'module-8-workspace',
+    number: 8,
     title: 'Two-Panel Exam Workspace, Clipboard Lockdown & Upload Guard',
     shortDesc: 'Secure in-app PDF/DOCX paper viewer with anti-leak watermarking, OS clipboard flush, and pre-existing upload rejection.',
     category: 'Candidate App',
@@ -452,8 +539,8 @@ fileInput.addEventListener('change', (e) => {
     }
   },
   {
-    id: 'module-8-examiner-dashboard',
-    number: 8,
+    id: 'module-9-examiner-dashboard',
+    number: 9,
     title: 'Examiner Command Center, Priority Queue & 2-Minute Alert Grouping',
     shortDesc: 'React & Material Design proctoring dashboard with cross-student severity ranking, live Socket.io feed, and 2-minute repeated alert collapsing.',
     category: 'Examiner Dashboard',
@@ -517,8 +604,8 @@ export function groupViolationsList(violations) {
     }
   },
   {
-    id: 'module-9-offline-buffer',
-    number: 9,
+    id: 'module-10-offline-buffer',
+    number: 10,
     title: 'Disk-Backed Offline Violation Buffer & Network Replay',
     shortDesc: 'Crash-proof atomic FIFO queue under Electron userData preserving original microsecond timestamps during Wi-Fi drops.',
     category: 'Security & Transport',
@@ -587,8 +674,8 @@ async function replayQueue() {
     }
   },
   {
-    id: 'module-10-chat',
-    number: 10,
+    id: 'module-11-chat',
+    number: 11,
     title: 'In-Exam Real-Time Chat & Broadcast Communications',
     shortDesc: 'Isolated bidirectional communication channels for candidate paper inquiries and urgent proctor announcements.',
     category: 'Candidate App',
@@ -599,7 +686,7 @@ async function replayQueue() {
       libraries: ['Socket.io', 'Express', 'React Hooks'],
       coreFiles: ['server/src/routes/messages.js', 'dashboard/src/components/LiveExamChat.jsx', 'candidate-app/renderer/examScreen.js'],
       mechanisms: [
-        'Dedicated rooms: socket.join(`exam_${examId}`) and socket.join(`session_${sessionId}`)',
+        'Dedicated rooms: socket.join(\`exam_\${examId}\`) and socket.join(\`session_\${sessionId}\`)',
         'Identity enrichment: server automatically stamps studentName and rollNumber onto incoming student messages',
         'Exam-scoped broadcast channel preventing communication across different course exams',
         'Read status tracking: marks messages as read when examiner opens candidate channel'
@@ -650,8 +737,8 @@ async function replayQueue() {
     }
   },
   {
-    id: 'module-11-lifecycle',
-    number: 11,
+    id: 'module-12-lifecycle',
+    number: 12,
     title: 'Exam Lifecycle, Waiting Lobby Protocol & Auto-Expiry Transition',
     shortDesc: 'Automated exam state machine: Question Paper Waiting Lobby (HTTP 423 Locked) and automated background duration expiry.',
     category: 'Server & Database',
@@ -710,8 +797,8 @@ setInterval(async () => {
     }
   },
   {
-    id: 'module-12-backend-indexes',
-    number: 12,
+    id: 'module-13-backend-indexes',
+    number: 13,
     title: 'High-Concurrency MongoDB Architecture & Benchmark Results',
     shortDesc: 'Document data modeling, compound B-Tree indexes, and 40-candidate benchmark achieving 30.4% P99 write latency reduction and 74.8% peak read latency cut.',
     category: 'Server & Database',

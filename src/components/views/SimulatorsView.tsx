@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from 'react';
 import { 
   PlayCircle, 
   Activity, 
@@ -16,13 +15,28 @@ import {
   ShieldAlert,
   Terminal,
   FileText,
-  Rotate3d
+  Rotate3d,
+  Smartphone,
+  BookOpen,
+  Users,
+  Cpu,
+  Layers,
+  Sparkles
 } from 'lucide-react';
 import { MathFormula } from '../common/MathFormula';
 import { ProctoringVisualizer3D } from '../3d/ProctoringVisualizer3D';
 
 export const SimulatorsView: React.FC = () => {
-  const [activeLab, setActiveLab] = useState<'decay' | 'whitelist' | 'voice' | 'priority-queue' | 'face-mesh-3d'>('decay');
+  const [activeLab, setActiveLab] = useState<'decay' | 'whitelist' | 'voice' | 'yolo-int8' | 'priority-queue' | 'face-mesh-3d'>('decay');
+
+  /* -------------------------------------------------------------
+     LAB: YOLOv8 INT8 NEURAL OBJECT DETECTION & TENSOR LAB
+  ------------------------------------------------------------- */
+  const [yoloScene, setYoloScene] = useState<'phone' | 'book' | 'clean' | 'multi-person'>('phone');
+  const [yoloPrecision, setYoloPrecision] = useState<'int8' | 'fp32'>('int8');
+  const [yoloConfThreshold, setYoloConfThreshold] = useState<number>(0.45);
+  const [yoloSamplingCadence, setYoloSamplingCadence] = useState<'sampled' | 'continuous'>('sampled');
+  const [yoloNmsIou, setYoloNmsIou] = useState<number>(0.45);
 
   /* -------------------------------------------------------------
      LAB 1: DYNAMIC RISK EXPONENTIAL DECAY SIMULATOR
@@ -304,6 +318,17 @@ export const SimulatorsView: React.FC = () => {
             3. Two-Stage Voice Lab
           </button>
           <button
+            onClick={() => setActiveLab('yolo-int8')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+              activeLab === 'yolo-int8'
+                ? 'bg-white dark:bg-neutral-800 text-blue-600 dark:text-blue-400 shadow-sm'
+                : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
+            }`}
+          >
+            <Smartphone className="w-3.5 h-3.5 text-blue-500" />
+            4. YOLOv8 INT8 Object Vision
+          </button>
+          <button
             onClick={() => setActiveLab('priority-queue')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors whitespace-nowrap ${
               activeLab === 'priority-queue'
@@ -311,7 +336,7 @@ export const SimulatorsView: React.FC = () => {
                 : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
             }`}
           >
-            4. Priority Queue & Grouping
+            5. Priority Queue & Grouping
           </button>
           <button
             onClick={() => setActiveLab('face-mesh-3d')}
@@ -322,7 +347,7 @@ export const SimulatorsView: React.FC = () => {
             }`}
           >
             <Rotate3d className="w-3.5 h-3.5 text-blue-500" />
-            <span>5. 3D FaceMesh & Pose Lab</span>
+            <span>6. 3D FaceMesh & Pose Lab</span>
           </button>
         </div>
       </div>
@@ -735,14 +760,461 @@ export const SimulatorsView: React.FC = () => {
         </div>
       )}
 
-      {/* LAB 4: PRIORITY QUEUE & 2-MINUTE ALERT GROUPER */}
+      {/* LAB 4: YOLOv8 INT8 OBJECT VISION LAB */}
+      {activeLab === 'yolo-int8' && (
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 sm:p-8 space-y-6 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-100 dark:border-neutral-800 pb-4">
+              <div>
+                <span className="text-xs font-mono font-semibold text-blue-600 dark:text-blue-400 uppercase">
+                  Module 04 · YOLOv8 INT8 Object Detection & Tensor Decoding
+                </span>
+                <h3 className="text-lg font-bold text-neutral-900 dark:text-white mt-0.5">
+                  Anchor-Free Single-Stage Detector & Smart Sampling Schedule
+                </h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-1 rounded-full text-xs font-mono font-semibold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                  ONNX Runtime · 2 Threads · SIMD
+                </span>
+              </div>
+            </div>
+
+            {/* Formula Banner */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-3.5 rounded-xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200 dark:border-neutral-800">
+                <div className="text-[11px] font-semibold text-neutral-500 uppercase tracking-wider mb-1">
+                  INT8 Dynamic Quantization
+                </div>
+                <div className="font-mono text-xs text-blue-600 dark:text-blue-400">
+                  q = round(r / S) + Z
+                </div>
+                <div className="text-[11px] text-neutral-500 mt-1">
+                  32-bit floats mapped to 8-bit integers (76% size reduction)
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200 dark:border-neutral-800">
+                <div className="text-[11px] font-semibold text-neutral-500 uppercase tracking-wider mb-1">
+                  Tensor Decoding Matrix
+                </div>
+                <div className="font-mono text-xs text-purple-600 dark:text-purple-400">
+                  (1, 84, 8400) → (8400, 84)
+                </div>
+                <div className="text-[11px] text-neutral-500 mt-1">
+                  8400 boxes × [x, y, w, h, 80 COCO classes]
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200 dark:border-neutral-800">
+                <div className="text-[11px] font-semibold text-neutral-500 uppercase tracking-wider mb-1">
+                  Smart Sampling Schedule
+                </div>
+                <div className="font-mono text-xs text-emerald-600 dark:text-emerald-400">
+                  Δt = 3.0s (0.33 FPS) · &lt;8% CPU
+                </div>
+                <div className="text-[11px] text-neutral-500 mt-1">
+                  Clamped to 2 CPU threads, preserving laptop battery
+                </div>
+              </div>
+            </div>
+
+            {/* Scene Selection & Control Knobs */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* Left Column: Interactive Controls */}
+              <div className="lg:col-span-5 space-y-4">
+                <div className="space-y-2">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
+                    1. Select Candidate Camera Scene:
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setYoloScene('phone')}
+                      className={`p-3 rounded-xl border text-left transition-all ${
+                        yoloScene === 'phone'
+                          ? 'border-red-600 bg-red-50/50 dark:bg-red-950/40 ring-1 ring-red-500/20'
+                          : 'border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/40'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-red-600 dark:text-red-400">
+                        <Smartphone className="w-3.5 h-3.5" />
+                        <span>Holding Phone</span>
+                      </div>
+                      <div className="text-[11px] text-neutral-500 mt-0.5">COCO Class 67</div>
+                    </button>
+
+                    <button
+                      onClick={() => setYoloScene('book')}
+                      className={`p-3 rounded-xl border text-left transition-all ${
+                        yoloScene === 'book'
+                          ? 'border-amber-600 bg-amber-50/50 dark:bg-amber-950/40 ring-1 ring-amber-500/20'
+                          : 'border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/40'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400">
+                        <BookOpen className="w-3.5 h-3.5" />
+                        <span>Open Textbook</span>
+                      </div>
+                      <div className="text-[11px] text-neutral-500 mt-0.5">COCO Class 73</div>
+                    </button>
+
+                    <button
+                      onClick={() => setYoloScene('multi-person')}
+                      className={`p-3 rounded-xl border text-left transition-all ${
+                        yoloScene === 'multi-person'
+                          ? 'border-purple-600 bg-purple-50/50 dark:bg-purple-950/40 ring-1 ring-purple-500/20'
+                          : 'border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/40'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-purple-600 dark:text-purple-400">
+                        <Users className="w-3.5 h-3.5" />
+                        <span>Second Person</span>
+                      </div>
+                      <div className="text-[11px] text-neutral-500 mt-0.5">COCO Class 0 (Count &gt; 1)</div>
+                    </button>
+
+                    <button
+                      onClick={() => setYoloScene('clean')}
+                      className={`p-3 rounded-xl border text-left transition-all ${
+                        yoloScene === 'clean'
+                          ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/40 ring-1 ring-emerald-500/20'
+                          : 'border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/40'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Clean Desk</span>
+                      </div>
+                      <div className="text-[11px] text-neutral-500 mt-0.5">Zero Prohibited Objects</div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Precision & Quantization Mode */}
+                <div className="space-y-2">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
+                    2. Quantization & Precision Mode:
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setYoloPrecision('int8')}
+                      className={`p-2.5 rounded-lg border text-left text-xs transition-all ${
+                        yoloPrecision === 'int8'
+                          ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-100 font-semibold'
+                          : 'border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <Sparkles className="w-3 h-3 text-blue-500" />
+                        <span>INT8 Quantized</span>
+                      </div>
+                      <div className="text-[10px] text-neutral-500 mt-0.5">2.97 MB · ~18ms latency</div>
+                    </button>
+
+                    <button
+                      onClick={() => setYoloPrecision('fp32')}
+                      className={`p-2.5 rounded-lg border text-left text-xs transition-all ${
+                        yoloPrecision === 'fp32'
+                          ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-100 font-semibold'
+                          : 'border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400'
+                      }`}
+                    >
+                      <div>FP32 Full Precision</div>
+                      <div className="text-[10px] text-neutral-500 mt-0.5">12.4 MB · ~68ms latency</div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Sampling Cadence */}
+                <div className="space-y-2">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
+                    3. Inference Sampling Cadence:
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setYoloSamplingCadence('sampled')}
+                      className={`p-2.5 rounded-lg border text-left text-xs transition-all ${
+                        yoloSamplingCadence === 'sampled'
+                          ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-100 font-semibold'
+                          : 'border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400'
+                      }`}
+                    >
+                      <div>Smart Sampling</div>
+                      <div className="text-[10px] text-neutral-500 mt-0.5">Every 90 frames (~3s) · 6.8% CPU</div>
+                    </button>
+
+                    <button
+                      onClick={() => setYoloSamplingCadence('continuous')}
+                      className={`p-2.5 rounded-lg border text-left text-xs transition-all ${
+                        yoloSamplingCadence === 'continuous'
+                          ? 'border-red-600 bg-red-50/50 dark:bg-red-950/40 text-red-900 dark:text-red-100 font-semibold'
+                          : 'border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400'
+                      }`}
+                    >
+                      <div>Continuous 30 FPS</div>
+                      <div className="text-[10px] text-neutral-500 mt-0.5">Every frame · 78.4% CPU (Lag)</div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Threshold Slider */}
+                <div className="space-y-2 p-3 rounded-xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200 dark:border-neutral-800">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-neutral-700 dark:text-neutral-300">Confidence Threshold (τ):</span>
+                    <span className="font-mono font-bold text-blue-600 dark:text-blue-400">{yoloConfThreshold.toFixed(2)}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.20"
+                    max="0.90"
+                    step="0.05"
+                    value={yoloConfThreshold}
+                    onChange={(e) => setYoloConfThreshold(parseFloat(e.target.value))}
+                    className="w-full h-1.5 bg-neutral-200 dark:bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                  />
+                  <div className="flex justify-between text-[10px] text-neutral-400 font-mono">
+                    <span>0.20 (Sensitive)</span>
+                    <span>0.45 (Optimal Default)</span>
+                    <span>0.90 (Strict)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Simulated Live Video & Detection Canvas */}
+              <div className="lg:col-span-7 space-y-4">
+                <div className="relative rounded-2xl bg-neutral-950 border border-neutral-800 overflow-hidden aspect-video flex flex-col justify-between p-4 shadow-inner">
+                  {/* Top Video HUD */}
+                  <div className="flex items-center justify-between z-10">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
+                      <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-neutral-300">
+                        Live Webcam Feed · 640×640 Preprocessed
+                      </span>
+                    </div>
+                    <div className="px-2 py-0.5 rounded bg-neutral-900/90 border border-neutral-800 text-[10px] font-mono text-neutral-400">
+                      {yoloPrecision === 'int8' ? 'ONNX INT8 ~18ms' : 'ONNX FP32 ~68ms'} · {yoloSamplingCadence === 'sampled' ? '0.33 FPS' : '30 FPS'}
+                    </div>
+                  </div>
+
+                  {/* Simulated Visual Elements & Bounding Boxes */}
+                  <div className="relative w-full h-full flex items-center justify-center">
+                    {/* Simulated Candidate Silhouette */}
+                    <div className="w-32 h-44 rounded-t-full bg-neutral-800/60 border border-neutral-700/50 flex flex-col items-center justify-start pt-4 relative">
+                      <div className="w-14 h-14 rounded-full bg-neutral-700/70 border border-neutral-600"></div>
+                      <div className="w-24 h-24 rounded-t-2xl bg-neutral-700/50 mt-2"></div>
+
+                      {/* Second Person in Frame */}
+                      {yoloScene === 'multi-person' && (
+                        <div className="absolute -right-20 top-4 w-28 h-36 rounded-t-full bg-purple-900/50 border border-purple-500/70 flex flex-col items-center pt-3 animate-pulse">
+                          <div className="w-10 h-10 rounded-full bg-purple-700/80"></div>
+                          <div className="w-20 h-16 rounded-t-xl bg-purple-800/60 mt-2"></div>
+                          {/* Bounding Box on Second Person */}
+                          <div className="absolute -inset-2 border-2 border-purple-500 rounded-lg bg-purple-500/10">
+                            <div className="absolute -top-6 left-0 bg-purple-600 text-white text-[10px] font-mono font-bold px-1.5 py-0.5 rounded">
+                              person: 0.86 [Class 0]
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Phone in Hand */}
+                      {yoloScene === 'phone' && (
+                        <div className="absolute -left-12 bottom-4 w-10 h-16 rounded-lg bg-red-950 border-2 border-red-500 flex items-center justify-center shadow-lg shadow-red-500/20">
+                          <div className="w-7 h-12 rounded bg-neutral-900 border border-neutral-700"></div>
+                          {/* Bounding Box on Phone */}
+                          {0.89 >= yoloConfThreshold && (
+                            <div className="absolute -inset-2 border-2 border-red-500 rounded-md bg-red-500/15">
+                              <div className="absolute -top-6 left-0 bg-red-600 text-white text-[10px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap">
+                                cell phone: 0.89 [Class 67]
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Open Book on Desk */}
+                      {yoloScene === 'book' && (
+                        <div className="absolute -bottom-8 -right-8 w-24 h-14 rounded bg-amber-950 border-2 border-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                          <BookOpen className="w-8 h-8 text-amber-400 opacity-80" />
+                          {/* Bounding Box on Book */}
+                          {0.82 >= yoloConfThreshold && (
+                            <div className="absolute -inset-2 border-2 border-amber-500 rounded-md bg-amber-500/15">
+                              <div className="absolute -top-6 left-0 bg-amber-600 text-white text-[10px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap">
+                                book: 0.82 [Class 73]
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Bottom Video HUD Overlay */}
+                  <div className="flex items-center justify-between z-10 pt-2 border-t border-neutral-900">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-mono text-neutral-400">Proctoring Status:</span>
+                      {yoloScene === 'phone' && 0.89 >= yoloConfThreshold ? (
+                        <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-red-600 text-white">
+                          Violation: unauthorized_object (Severity 4)
+                        </span>
+                      ) : yoloScene === 'book' && 0.82 >= yoloConfThreshold ? (
+                        <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-600 text-white">
+                          Violation: unauthorized_object (Severity 4)
+                        </span>
+                      ) : yoloScene === 'multi-person' ? (
+                        <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-600 text-white">
+                          Violation: second_person_detected (Severity 4)
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-600 text-white flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> All Clear · Desk Compliant
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[10px] font-mono text-neutral-500">
+                      NMS IoU: {yoloNmsIou} · Bounding Rect: Active
+                    </div>
+                  </div>
+                </div>
+
+                {/* Real-time Hardware Telemetry Bar */}
+                <div className="grid grid-cols-4 gap-2">
+                  <div className="p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200 dark:border-neutral-800 text-center">
+                    <div className="text-[10px] text-neutral-400 uppercase font-mono">Model Size</div>
+                    <div className="text-sm font-bold font-mono text-blue-600 dark:text-blue-400">
+                      {yoloPrecision === 'int8' ? '2.97 MB' : '12.4 MB'}
+                    </div>
+                    <div className="text-[9px] text-neutral-400">{yoloPrecision === 'int8' ? '-76% RAM' : 'Baseline'}</div>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200 dark:border-neutral-800 text-center">
+                    <div className="text-[10px] text-neutral-400 uppercase font-mono">Inference Time</div>
+                    <div className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                      {yoloPrecision === 'int8' ? '~18.2 ms' : '~68.4 ms'}
+                    </div>
+                    <div className="text-[9px] text-neutral-400">{yoloPrecision === 'int8' ? '3.75x Faster' : 'Standard'}</div>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200 dark:border-neutral-800 text-center">
+                    <div className="text-[10px] text-neutral-400 uppercase font-mono">CPU Overhead</div>
+                    <div className={`text-sm font-bold font-mono ${yoloSamplingCadence === 'sampled' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                      {yoloSamplingCadence === 'sampled' ? '6.8%' : '78.4%'}
+                    </div>
+                    <div className="text-[9px] text-neutral-400">{yoloSamplingCadence === 'sampled' ? 'Budget Pass' : 'Thermal Lag'}</div>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200 dark:border-neutral-800 text-center">
+                    <div className="text-[10px] text-neutral-400 uppercase font-mono">Output Shape</div>
+                    <div className="text-sm font-bold font-mono text-purple-600 dark:text-purple-400">
+                      8400 × 84
+                    </div>
+                    <div className="text-[9px] text-neutral-400">Transposed Tensor</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Tensor Output Breakdown Inspector */}
+            <div className="space-y-2 pt-2 border-t border-neutral-100 dark:border-neutral-800">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
+                  Decoded Tensor Output Slice [Shape: (8400, 84)]
+                </div>
+                <span className="text-[11px] font-mono text-neutral-400">
+                  Transposed from (1, 84, 8400) ONNX output
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-neutral-950 font-mono text-xs text-neutral-300 overflow-x-auto space-y-2">
+                <div className="grid grid-cols-12 text-neutral-500 border-b border-neutral-800 pb-1.5 text-[11px]">
+                  <span className="col-span-2">Row Index</span>
+                  <span className="col-span-3">Coordinates [xc, yc, w, h]</span>
+                  <span className="col-span-3">Top Class & Logit</span>
+                  <span className="col-span-2">Confidence</span>
+                  <span className="col-span-2 text-right">NMS Status</span>
+                </div>
+
+                {yoloScene === 'phone' ? (
+                  <>
+                    <div className="grid grid-cols-12 text-red-400 font-semibold items-center py-1 bg-red-950/20 px-1 rounded">
+                      <span className="col-span-2">Row #1842</span>
+                      <span className="col-span-3">[184, 412, 64, 112]</span>
+                      <span className="col-span-3">cell phone (ID 67)</span>
+                      <span className="col-span-2">0.89</span>
+                      <span className="col-span-2 text-right text-emerald-400">Passed (IoU &gt; τ)</span>
+                    </div>
+                    <div className="grid grid-cols-12 text-neutral-400 items-center py-0.5">
+                      <span className="col-span-2">Row #1843</span>
+                      <span className="col-span-3">[186, 410, 62, 110]</span>
+                      <span className="col-span-3">cell phone (ID 67)</span>
+                      <span className="col-span-2">0.74</span>
+                      <span className="col-span-2 text-right text-neutral-600">Suppressed (IoU 0.88)</span>
+                    </div>
+                    <div className="grid grid-cols-12 text-neutral-500 items-center py-0.5">
+                      <span className="col-span-2">Row #3210</span>
+                      <span className="col-span-3">[320, 240, 210, 310]</span>
+                      <span className="col-span-3">person (ID 0)</span>
+                      <span className="col-span-2">0.94</span>
+                      <span className="col-span-2 text-right text-neutral-400">Ignored (Expected)</span>
+                    </div>
+                  </>
+                ) : yoloScene === 'book' ? (
+                  <>
+                    <div className="grid grid-cols-12 text-amber-400 font-semibold items-center py-1 bg-amber-950/20 px-1 rounded">
+                      <span className="col-span-2">Row #4120</span>
+                      <span className="col-span-3">[480, 520, 190, 140]</span>
+                      <span className="col-span-3">book (ID 73)</span>
+                      <span className="col-span-2">0.82</span>
+                      <span className="col-span-2 text-right text-emerald-400">Passed (IoU &gt; τ)</span>
+                    </div>
+                    <div className="grid grid-cols-12 text-neutral-400 items-center py-0.5">
+                      <span className="col-span-2">Row #4121</span>
+                      <span className="col-span-3">[482, 518, 188, 138]</span>
+                      <span className="col-span-3">book (ID 73)</span>
+                      <span className="col-span-2">0.68</span>
+                      <span className="col-span-2 text-right text-neutral-600">Suppressed (IoU 0.91)</span>
+                    </div>
+                  </>
+                ) : yoloScene === 'multi-person' ? (
+                  <>
+                    <div className="grid grid-cols-12 text-purple-400 font-semibold items-center py-1 bg-purple-950/20 px-1 rounded">
+                      <span className="col-span-2">Row #3210</span>
+                      <span className="col-span-3">[320, 240, 210, 310]</span>
+                      <span className="col-span-3">person (ID 0 - Student)</span>
+                      <span className="col-span-2">0.95</span>
+                      <span className="col-span-2 text-right text-emerald-400">Primary Candidate</span>
+                    </div>
+                    <div className="grid grid-cols-12 text-purple-400 font-semibold items-center py-1 bg-purple-950/30 px-1 rounded">
+                      <span className="col-span-2">Row #5890</span>
+                      <span className="col-span-3">[560, 180, 140, 260]</span>
+                      <span className="col-span-3">person (ID 0 - 2nd Person)</span>
+                      <span className="col-span-2">0.86</span>
+                      <span className="col-span-2 text-right text-red-400 font-bold">2nd Person Alert!</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="grid grid-cols-12 text-neutral-400 items-center py-1">
+                    <span className="col-span-2">Row #3210</span>
+                    <span className="col-span-3">[320, 240, 210, 310]</span>
+                    <span className="col-span-3">person (ID 0)</span>
+                    <span className="col-span-2">0.96</span>
+                    <span className="col-span-2 text-right text-emerald-400">Normal (Clean Desk)</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LAB 5: PRIORITY QUEUE & 2-MINUTE ALERT GROUPER */}
       {activeLab === 'priority-queue' && (
         <div className="space-y-6">
           <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 sm:p-8 space-y-6 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-100 dark:border-neutral-800 pb-4">
               <div>
                 <span className="text-xs font-mono font-semibold text-indigo-600 dark:text-indigo-400 uppercase">
-                  Module 08 · Cross-Student Priority Queue & Client-Side Grouping
+                  Module 09 · Cross-Student Priority Queue & Client-Side Grouping
                 </span>
                 <h3 className="text-lg font-bold text-neutral-900 dark:text-white mt-0.5">
                   Severity-First Sorting & 2-Minute Micro-Alert Collapsing

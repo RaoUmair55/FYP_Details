@@ -96,7 +96,9 @@ export const techStackData: TechStackCategory[] = [
     role: 'Secure desktop wrapper, OS clipboard/screen lockdown, and high-performance local AI inference engine',
     keyPackages: [
       { name: 'electron', version: '^34.0.0', purpose: 'Native desktop container with screen & clipboard hooks' },
-      { name: 'mediapipe', version: '^0.10.0', purpose: '3D facial landmark mesh extraction' },
+      { name: 'onnxruntime', version: '^1.19.0', purpose: 'High-performance inference engine for YOLOv8n INT8 quantized object detection' },
+      { name: 'opencv-python', version: '^4.10.0', purpose: 'Perspective-n-Point 3D head pose solving, SIMD blob preprocessing, and NMS' },
+      { name: 'mediapipe', version: '^0.10.0', purpose: '3D facial landmark mesh extraction (468 facial coordinates)' },
       { name: 'resemblyzer', version: '^0.1.4', purpose: 'Deep voice encoder extracting 256-d speaker embeddings' },
       { name: 'webrtcvad-wheels', version: '^2.0.10', purpose: 'Lightweight C-optimized voice activity detection (<1% CPU)' },
       { name: 'psutil', version: '^6.1.0', purpose: 'OS process enumeration and open file handle inspection' },
@@ -106,16 +108,19 @@ export const techStackData: TechStackCategory[] = [
       'Native OS Access: Electron provides native hooks to flush clipboard, intercept Alt+Tab/shortcuts, and monitor secondary displays',
       'Heavy AI Isolated to Python: Keeps heavy neural computation out of Node.js event loop, preventing UI freezes',
       'In-Memory Privacy: Live webcam video is analyzed strictly in RAM and never written to disk or transmitted continuously to servers',
+      'INT8 Quantization: Compresses YOLOv8n from 12.4MB to 2.97MB, running with SIMD AVX2/VNNI vector integer operations at ~18ms per inference',
       'Offline Buffer: Atomic JSON queue guarantees zero loss of violation evidence during campus Wi-Fi outages'
     ],
     dataFlowMechanisms: [
       'Local Receiver: Electron starts Express server on port 8766; Python daemon posts local violation JSONs',
       'Forwarder: Electron forwards violation payload to central server; queues to disk on failure',
+      'Smart Sampling Schedule: 30 FPS Head Pose, 3 FPS Face Count, 0.33 FPS YOLOv8 INT8 Object Detection (every 90 frames)',
+      'Audio Evidence Dispatch: On voice mismatch (<0.75), saves raw 16kHz .wav buffer and uploads via multipart FormData',
       'Self-Check Handshake: Electron passes examType to Python, selectively bypassing camera/mic checks for Physical Lab exams'
     ],
     concurrencyAndEfficiency: [
       'Two-Stage Voice: WebRTC VAD gates Resemblyzer inference, keeping voice CPU usage under 1%',
-      'Vision Throttling: ONNX Runtime clamped to 2 threads, sampled every 3rd frame, keeping total AI CPU usage under 35%'
+      'Vision Throttling: ONNX Runtime clamped to 2 CPU threads with SIMD blob extraction, keeping total AI CPU usage strictly under 30%'
     ]
   }
 ];

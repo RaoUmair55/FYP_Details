@@ -71,7 +71,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search all 12 modules, MongoDB schemas, algorithms, formulas, or viva questions..."
+            placeholder="Search all 13 modules, YOLO INT8 vision, MongoDB schemas, algorithms, formulas, or viva questions..."
             autoFocus
             className="w-full bg-transparent text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 text-sm focus:outline-none"
           />
