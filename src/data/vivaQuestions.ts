@@ -47,8 +47,8 @@ export const vivaQuestions: VivaQuestion[] = [
     category: 'Performance & Database',
     question: 'How did your compound B-Tree indexes improve database performance during high-concurrency 40-student load testing?',
     shortAnswer: 'Indexes converted full collection/table scans (COLLSCAN) into targeted index scans (IXSCAN), cutting P99 write latency by 30.4% and peak read latency by 74.8%.',
-    deepDive: 'Without indexes, querying GET /violations/priority-queue (which sorts by severity DESC, timestamp DESC) or filtering by sessionId required PostgreSQL/MongoDB to scan every single row across all active candidates. Under 40 simultaneous candidate writes, this led to CPU spikes and read latency of 1230ms. By introducing compound indexes on (session_id, timestamp DESC), (reviewed), and (exam_id, status), execution plans switched to IXSCAN, dropping total docs examined to match nReturned and reducing peak write latency by 54.1% and peak read latency to 310ms.',
-    codeOrFormulaRef: 'CREATE INDEX idx_violations_session_time ON violations (session_id, timestamp DESC);'
+    deepDive: 'Without indexes, querying GET /violations/priority-queue (which sorts by severity DESC, timestamp DESC) or filtering by sessionId required MongoDB to scan every single document (COLLSCAN) across all active candidates. Under 40 simultaneous candidate writes, this led to CPU spikes and read latency of 1230ms. By introducing compound indexes on { sessionId: 1, timestamp: -1 }, { reviewed: 1 }, and { examId: 1, status: 1 }, execution plans switched to IXSCAN, dropping total docs examined to match nReturned and reducing peak write latency by 54.1% and peak read latency to 310ms.',
+    codeOrFormulaRef: 'violationSchema.index({ sessionId: 1, timestamp: -1 });'
   },
   {
     category: 'Architecture',

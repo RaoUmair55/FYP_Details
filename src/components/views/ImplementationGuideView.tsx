@@ -141,78 +141,75 @@ class AIMonitor:
       code: `// server/src/routes/violations.js
 const express = require('express');
 const router = express.Router();
-const { pool } = require('../db');
-const scoringService = require('../services/scoring');
+const Violation = require('../models/Violation');
+const Session = require('../models/Session');
+const riskEngine = require('../services/riskEngine');
 
 // Open candidate telemetry ingestion (Machine-to-Machine)
 router.post('/violation', async (req, res) => {
-    const { sessionId, type, severity, timestamp, details, screenshotPath } = req.body;
+    const { sessionId, type, severity, timestamp, details, screenshotPath, audioPath } = req.body;
     
-    // 1. Insert into PostgreSQL
-    const insertQuery = \`
-        INSERT INTO violations (session_id, type, severity, timestamp, details, screenshot_path)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING *;\`;
-    const result = await pool.query(insertQuery, [sessionId, type, severity, timestamp, details, screenshotPath]);
-    const violation = result.rows[0];
+    // 1. Insert into MongoDB via Mongoose
+    const violation = await Violation.create({
+        sessionId,
+        type,
+        severity: Number(severity),
+        timestamp: new Date(timestamp),
+        details: typeof details === 'string' ? JSON.parse(details) : details,
+        screenshotPath,
+        audioPath
+    });
 
     // 2. Fetch session violations and recalculate exponential decay score
-    const allViolations = await pool.query(
-        'SELECT * FROM violations WHERE session_id = $1 AND decision != \\'dismissed\\'',
-        [sessionId]
-    );
-    const newScore = scoringService.calculateScore(allViolations.rows);
-    await pool.query('UPDATE sessions SET risk_score = $1 WHERE id = $2', [newScore, sessionId]);
+    const allViolations = await Violation.find({ 
+        sessionId, 
+        decision: { $ne: 'dismissed' } 
+    }).sort({ timestamp: -1 });
+    
+    const newScore = riskEngine.calculateRiskScore(allViolations);
+    await Session.findOneAndUpdate({ studentId: sessionId }, { riskScore: newScore });
 
     // 3. Broadcast to Examiner Dashboard via WebSockets
     req.io.to(\`session_\${sessionId}\`).emit('violation', violation);
     req.io.to(\`session_\${sessionId}\`).emit('riskScoreUpdate', { sessionId, riskScore: newScore });
 
-    res.status(201).json({ success: true, violationId: violation.id });
+    res.status(201).json({ success: true, violationId: violation._id });
 });`
     },
     {
       number: 4,
-      title: 'PostgreSQL Relational Schema & Compound Indexes',
+      title: 'MongoDB Schema & Compound B-Tree Indexes',
       category: 'Database',
-      icon: <Database className="w-4 h-4 text-cyan-500" />,
-      description: 'Execute DDL scripts for teachers, exams, sessions, violations, submissions, and messages. Create crucial compound B-Tree indexes that eliminate collection scans and drop P99 write latency by 30.4%.',
+      icon: <Database className="w-4 h-4 text-emerald-500" />,
+      description: 'Mongoose schemas for teachers, exams, sessions, violations, submissions, messages, and auditlogs. Create crucial compound B-Tree indexes that eliminate collection scans and drop P99 write latency by 30.4%.',
       keyMechanisms: [
-        'UUID primary keys with gen_random_uuid()',
-        'Compound index idx_violations_session_time on (session_id, timestamp DESC)',
-        'Partial index idx_violations_reviewed on (reviewed) WHERE reviewed = FALSE',
-        'Connection pooling configured with max: 25 and idleTimeoutMillis: 30000'
+        'Default MongoDB ObjectIds and indexed fields',
+        'Compound index on { sessionId: 1, timestamp: -1 }',
+        'Live triage index on { reviewed: 1 } and { sessionId: 1, reviewed: 1 }',
+        'Connection pooling configured via mongoose.connect with auto-reconnect'
       ],
-      code: `-- server/src/db/schema.sql
--- 1. Initialize Relational Schema
-CREATE TABLE exams (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    exam_code VARCHAR(50) UNIQUE NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    exam_type VARCHAR(20) DEFAULT 'online',
-    status VARCHAR(20) DEFAULT 'draft',
-    duration_minutes INTEGER DEFAULT 60,
-    paper_locked BOOLEAN DEFAULT TRUE,
-    activated_at TIMESTAMPTZ,
-    created_by UUID NOT NULL REFERENCES teachers(id)
-);
+      code: `// server/src/models/Violation.js
+const mongoose = require('mongoose');
 
-CREATE TABLE violations (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-    type VARCHAR(50) NOT NULL,
-    severity SMALLINT NOT NULL CHECK (severity BETWEEN 1 AND 5),
-    timestamp TIMESTAMPTZ NOT NULL,
-    details JSONB DEFAULT '{}'::jsonb,
-    screenshot_path TEXT,
-    reviewed BOOLEAN DEFAULT FALSE,
-    decision VARCHAR(20) DEFAULT 'pending'
-);
+const violationSchema = new mongoose.Schema({
+    sessionId: { type: String, required: true },
+    type: { type: String, required: true },
+    severity: { type: Number, required: true, min: 1, max: 5 },
+    timestamp: { type: Date, required: true },
+    details: { type: Object, default: {} },
+    screenshotPath: { type: String },
+    audioPath: { type: String },
+    reviewed: { type: Boolean, default: false },
+    decision: { type: String, enum: ["pending", "confirmed", "dismissed"], default: "pending" },
+    reviewNote: { type: String, default: "" }
+}, { timestamps: true });
 
--- 2. High-Performance Compound & Partial Indexes
-CREATE INDEX idx_violations_session_time ON violations (session_id, timestamp DESC);
-CREATE INDEX idx_violations_reviewed ON violations (reviewed) WHERE reviewed = FALSE;
-CREATE INDEX idx_sessions_exam_status ON sessions (exam_id, status);`
+// High-Concurrency Compound & Single Indexes
+violationSchema.index({ sessionId: 1, timestamp: -1 });
+violationSchema.index({ reviewed: 1 });
+violationSchema.index({ sessionId: 1, reviewed: 1 });
+
+module.exports = mongoose.model('Violation', violationSchema);`
     },
     {
       number: 5,
@@ -320,7 +317,7 @@ export function PriorityQueue() {
           Codebase Architecture & Step-by-Step Implementation Guide
         </h1>
         <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
-          A structured, file-by-file developer blueprint demonstrating how each layer of the React, Node.js, and PostgreSQL stack is built.
+          A structured, file-by-file developer blueprint demonstrating how each layer of the React, Node.js, and MongoDB stack is built.
         </p>
       </div>
 

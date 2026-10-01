@@ -49,7 +49,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigateTab, onSel
             A production-grade, privacy-first academic examination and integrity platform. Combines an 
             <strong> Electron OS-locked desktop shell</strong> running an in-memory 
             <strong> Python AI monitoring suite</strong>, a high-concurrency 
-            <strong> Node.js & PostgreSQL backend</strong>, and an intuitive 
+            <strong> Node.js & MongoDB backend</strong>, and an intuitive 
             <strong> React examiner dashboard</strong> with real-time severity triage and dynamic exponential decay risk scoring.
           </p>
 
@@ -112,7 +112,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigateTab, onSel
               -30.4%
             </div>
             <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-              P99 Write Latency Drop with PostgreSQL B-Tree Indexes
+              P99 Write Latency Drop with MongoDB Compound Indexes
             </div>
           </div>
         </div>
@@ -184,10 +184,10 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigateTab, onSel
               </div>
               <div>
                 <h3 className="text-base font-bold text-neutral-900 dark:text-white">
-                  2. Central Backend & PostgreSQL
+                  2. Central Backend & MongoDB
                 </h3>
                 <div className="text-xs text-neutral-400 mt-0.5">
-                  Node.js · Express · PostgreSQL · Socket.io
+                  Node.js · Express · MongoDB · Socket.io
                 </div>
               </div>
               <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
@@ -211,7 +211,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigateTab, onSel
               </ul>
             </div>
             <div className="pt-4 mt-4 border-t border-neutral-100 dark:border-neutral-800 flex justify-between items-center text-xs">
-              <span className="text-neutral-400">Tech: Express · PostgreSQL · Socket.io</span>
+              <span className="text-neutral-400">Tech: Express · MongoDB · Socket.io</span>
               <button 
                 onClick={() => onNavigateTab('database')}
                 className="text-emerald-600 dark:text-emerald-400 font-medium hover:underline flex items-center gap-1"

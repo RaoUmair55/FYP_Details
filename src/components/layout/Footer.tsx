@@ -47,7 +47,7 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab }) => {
 
         <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-neutral-400">
           <div>
-            Built with React 19, Node.js, Express, and PostgreSQL. Designed for institutional exam integrity.
+            Built with React 19, Node.js, Express, and MongoDB. Designed for institutional exam integrity.
           </div>
           <div>
             Computer Science FYP Showcase

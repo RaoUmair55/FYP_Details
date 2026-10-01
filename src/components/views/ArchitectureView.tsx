@@ -87,18 +87,18 @@ export const ArchitectureView: React.FC = () => {
     },
     {
       id: 'backend-postgres',
-      tier: 'Database & Relational Persistence',
-      title: 'PostgreSQL Relational Database',
-      tech: 'PostgreSQL 16 · B-Tree Compound Indexes · Connection Pool',
-      role: 'ACID-compliant storage for exams, candidate sessions, discrete microsecond violations, and audit logs.',
+      tier: 'Database & Persistent Storage',
+      title: 'MongoDB NoSQL Database',
+      tech: 'MongoDB 7.0 · Mongoose ODM · Compound B-Tree Indexes',
+      role: 'High-throughput document persistence for exams, candidate sessions, discrete microsecond violations, and audit logs.',
       responsibilities: [
-        'Strict foreign key relationships enforcing zero orphaned telemetry',
-        'Compound B-Tree index (session_id, timestamp DESC) for sub-2ms timeline queries',
-        'Partial index on unreviewed violations for cross-student Priority Queue triage',
-        'JSONB storage for telemetry metadata (confidence, angles, similarity score)',
-        'Connection pooling with pg.Pool handling high-concurrency 40-student loads'
+        'Document model naturally storing nested telemetry and exam rules',
+        'Compound B-Tree index (sessionId: 1, timestamp: -1) for sub-2ms timeline queries',
+        'Single-field index on reviewed: 1 for cross-student Priority Queue triage',
+        'BSON document storage for telemetry metadata (confidence, angles, similarity score, audioPath)',
+        'Connection pooling with Mongoose handling high-concurrency 40-student loads'
       ],
-      codePath: 'server/src/db/schema.sql'
+      codePath: 'server/src/models/Violation.js'
     },
     {
       id: 'examiner-dashboard',
@@ -129,7 +129,7 @@ export const ArchitectureView: React.FC = () => {
             System Architecture & Data Engineering
           </h1>
           <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
-            Complete topology of the Candidate Desktop Shell, Central Node.js/PostgreSQL Server, and React Examiner Dashboard.
+            Complete topology of the Candidate Desktop Shell, Central Node.js/MongoDB Server, and React Examiner Dashboard.
           </p>
         </div>
 
@@ -235,7 +235,7 @@ export const ArchitectureView: React.FC = () => {
               <div className="p-4 rounded-xl border border-emerald-200/80 dark:border-emerald-900/40 bg-emerald-50/20 dark:bg-emerald-950/10 space-y-4">
                 <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
                   <Server className="w-4 h-4" />
-                  <span>Tier 2: Backend Server & PostgreSQL</span>
+                  <span>Tier 2: Backend Server & MongoDB</span>
                 </div>
 
                 <button
@@ -267,12 +267,12 @@ export const ArchitectureView: React.FC = () => {
                       : 'border-neutral-200 dark:border-neutral-800 bg-white/80 dark:bg-neutral-900 hover:border-emerald-300'
                   }`}
                 >
-                  <div className="text-xs font-mono text-cyan-500">PostgreSQL Relational DB</div>
+                  <div className="text-xs font-mono text-emerald-500">MongoDB Document Database</div>
                   <div className="text-sm font-bold text-neutral-900 dark:text-white">
-                    ACID Storage & Compound Indexes
+                    High-Throughput Storage & Indexes
                   </div>
                   <div className="text-xs text-neutral-500 mt-1">
-                    idx_violations_session_time · Partial B-Trees · Connection Pool
+                    sessionId_1_timestamp_-1 · Mongoose Schemas · Connection Pool
                   </div>
                 </button>
               </div>

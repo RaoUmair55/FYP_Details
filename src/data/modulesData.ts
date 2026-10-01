@@ -32,7 +32,7 @@ export const modulesData: ModuleDetail[] = [
         explanation: 'Enforces an optimal balance between rapid cheating detection (under 3 seconds) and minimal CPU footprint so low-spec candidate PCs remain responsive.'
       }
     ],
-    architectureFit: 'Runs inside the local Python daemon. When a breach is discovered, WhitelistEnforcer dispatches an HTTP POST payload to the Electron receiver (port 8766), which commits it to the atomic offline buffer and streams it to the Node.js/PostgreSQL backend.',
+    architectureFit: 'Runs inside the local Python daemon. When a breach is discovered, WhitelistEnforcer dispatches an HTTP POST payload to the Electron receiver (port 8766), which commits it to the atomic offline buffer and streams it to the Node.js/MongoDB backend.',
     inputs: ['Candidate process table snapshot', 'Exam whitelist array (from exam configuration)', 'Active session exam_start_time ISO string'],
     outputs: ['Process termination signal', 'Violation event JSON (type: "unauthorized_app", severity: 4, process_name, timestamp)'],
     edgeCasesHandled: [
@@ -291,7 +291,7 @@ export const modulesData: ModuleDetail[] = [
         explanation: 'Enables flexible exam administration across both remote unmonitored home setups and university computer labs.'
       }
     ],
-    architectureFit: 'Pre-exam gate. Candidate cannot advance to examScreen.html until all checks return status: "passed". POST /sessions establishes initial state in PostgreSQL.',
+    architectureFit: 'Pre-exam gate. Candidate cannot advance to examScreen.html until all checks return status: "passed". POST /sessions establishes initial state in MongoDB.',
     inputs: ['Candidate Full Name & Roll Number', 'Webcam & Microphone permissions', 'Exam code'],
     outputs: ['Database Session record (status: "active", consentGiven: true)', 'Reference selfie image', '256-d reference voice embedding vector'],
     edgeCasesHandled: [
@@ -593,7 +593,7 @@ async function replayQueue() {
     shortDesc: 'Isolated bidirectional communication channels for candidate paper inquiries and urgent proctor announcements.',
     category: 'Candidate App',
     purpose: 'Enables candidates to request paper clarifications and allows examiners to broadcast emergency announcements (e.g., typo corrections, time extensions) with zero cross-exam chat leakage.',
-    howItWorks: 'Built on Socket.io and PostgreSQL/MongoDB messages table. Candidates have a 1-on-1 private channel linked to their active session ID. Examiners can reply directly or dispatch an exam-wide announcement (isBroadcast: true). Incoming messages appear non-intrusively in the candidate workspace header and in the examiner LiveExamChat sub-tab, auto-enriched with candidate Full Name and Roll Number.',
+    howItWorks: 'Built on Socket.io and MongoDB messages collection. Candidates have a 1-on-1 private channel linked to their active session ID. Examiners can reply directly or dispatch an exam-wide announcement (isBroadcast: true). Incoming messages appear non-intrusively in the candidate workspace header and in the examiner LiveExamChat sub-tab, auto-enriched with candidate Full Name and Roll Number.',
     technicalImplementation: {
       language: 'Node.js / React / Socket.io',
       libraries: ['Socket.io', 'Express', 'React Hooks'],
@@ -614,7 +614,7 @@ async function replayQueue() {
     ],
     architectureFit: 'Runs on the WebSocket connection between candidate Electron app, Express server, and React dashboard.',
     inputs: ['Candidate message text', 'Proctor announcement text', 'Session and Exam IDs'],
-    outputs: ['Real-time chat bubble notification', 'Persisted message audit record in PostgreSQL'],
+    outputs: ['Real-time chat bubble notification', 'Persisted message audit record in MongoDB'],
     edgeCasesHandled: [
       'Proctor offline: messages persist in database with unread count badge, ready when proctor logs in',
       'Network reconnect: fetches missed messages using timestamp pagination'
@@ -658,7 +658,7 @@ async function replayQueue() {
     purpose: 'Synchronizes exam start times across all candidates and automatically concludes exams when the duration expires without requiring manual examiner clicks.',
     howItWorks: 'Question papers uploaded by instructors are initially locked. When candidates log in prior to start, GET /exam/:examId/paper returns HTTP 423 Locked, displaying a countdown Waiting Lobby. When the instructor clicks "Release Paper", the server atomically sets status: "active", records activatedAt, unlocks the paper, and emits paperReleased via WebSockets. A background cron worker periodically compares activatedAt + durationMinutes against current time. When elapsed, the exam is marked "completed", and all associated candidate sessions transition to "completed".',
     technicalImplementation: {
-      language: 'Node.js / Express / PostgreSQL',
+      language: 'Node.js / Express / MongoDB',
       libraries: ['node-cron', 'Socket.io', 'Express router'],
       coreFiles: ['server/src/routes/exams.js', 'server/src/routes/examPaper.js', 'candidate-app/renderer/examScreen.js'],
       mechanisms: [
@@ -712,20 +712,20 @@ setInterval(async () => {
   {
     id: 'module-12-backend-indexes',
     number: 12,
-    title: 'High-Concurrency PostgreSQL Architecture & Benchmark Results',
-    shortDesc: 'Relational data modeling, compound B-Tree indexes, and 40-candidate benchmark achieving 30.4% P99 write latency reduction and 74.8% peak read latency cut.',
+    title: 'High-Concurrency MongoDB Architecture & Benchmark Results',
+    shortDesc: 'Document data modeling, compound B-Tree indexes, and 40-candidate benchmark achieving 30.4% P99 write latency reduction and 74.8% peak read latency cut.',
     category: 'Server & Database',
     purpose: 'Ensures the backend effortlessly absorbs high-frequency telemetry from dozens of concurrent candidate clients while maintaining sub-second query response times for proctors.',
-    howItWorks: 'Uses Node.js + Express and PostgreSQL (with ACID transactions and connection pooling). Critical high-frequency queries are backed by compound B-Tree indexes: idx_violations_session_time on (sessionId, timestamp DESC) for timeline lookups, idx_violations_reviewed on (reviewed) for priority queues, and idx_sessions_exam_status on (examId, status). A load-testing simulation with 40 simultaneous candidates executing writes and dashboard reads demonstrated an 11.1% throughput gain, 30.4% P99 write latency cut, and 74.8% peak read latency cut.',
+    howItWorks: 'Uses Node.js + Express and MongoDB (with Mongoose schema validation and connection pooling). Critical high-frequency queries are backed by compound B-Tree indexes: sessionId_1_timestamp_-1 on (sessionId, timestamp DESC) for timeline lookups, reviewed_1 on (reviewed) for priority queues, and examId_1_status_1 on (examId, status). A load-testing simulation with 40 simultaneous candidates executing writes and dashboard reads demonstrated an 11.1% throughput gain, 30.4% P99 write latency cut, and 74.8% peak read latency cut.',
     technicalImplementation: {
-      language: 'SQL / PostgreSQL / Node.js',
-      libraries: ['pg (node-postgres) / Drizzle ORM', 'bcrypt', 'helmet', 'express-rate-limit'],
-      coreFiles: ['server/src/models/schema.sql', 'server/src/routes/violations.js', 'scripts/load_test.py'],
+      language: 'JavaScript / Node.js / Mongoose / MongoDB',
+      libraries: ['mongoose', 'mongodb', 'bcrypt', 'helmet', 'express-rate-limit', 'cloudinary'],
+      coreFiles: ['server/src/models/Violation.js', 'server/src/routes/violations.js', 'server/src/services/riskEngine.js'],
       mechanisms: [
-        'Compound B-Tree indexes eliminating full table scans (COLLSCAN -> IXSCAN)',
+        'Compound B-Tree indexes eliminating full collection scans (COLLSCAN -> IXSCAN)',
         'Dual-token authentication: in-memory 15m JWT + httpOnly 14d refresh token with SHA-256 rotation',
         '5-attempt failed login lockout (15 minutes) with constant-time bcrypt verification',
-        'Connection pooling with pg.Pool to handle burst writes under concurrent violation uploads'
+        'Connection pooling with mongoose.connect to handle burst writes under concurrent violation uploads'
       ]
     },
     keyFormulasOrRules: [
@@ -743,28 +743,30 @@ setInterval(async () => {
       'Concurrent duplicate logins: brute-force rate limiters restrict /auth/login to 10 attempts per 15m'
     ],
     codeSnippet: {
-      language: 'sql',
-      filename: 'server/src/db/schema.sql',
-      code: `-- High-Concurrency Relational Schema with Compound Indexes
-CREATE TABLE violations (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-    type VARCHAR(50) NOT NULL,
-    severity SMALLINT NOT NULL CHECK (severity BETWEEN 1 AND 5),
-    timestamp TIMESTAMPTZ NOT NULL,
-    details JSONB DEFAULT '{}'::jsonb,
-    screenshot_path TEXT,
-    reviewed BOOLEAN DEFAULT FALSE,
-    decision VARCHAR(20) DEFAULT 'pending',
-    examiner_notes TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
+      language: 'javascript',
+      filename: 'server/src/models/Violation.js',
+      code: `const mongoose = require('mongoose');
 
--- Crucial High-Concurrency Indexes
-CREATE INDEX idx_violations_session_time ON violations (session_id, timestamp DESC);
-CREATE INDEX idx_violations_reviewed ON violations (reviewed) WHERE reviewed = FALSE;
-CREATE INDEX idx_sessions_exam_status ON sessions (exam_id, status);`,
-      explanation: 'Optimized PostgreSQL DDL schema with targeted compound and partial indexes for sub-millisecond triage queries.'
+const violationSchema = new mongoose.Schema({
+    sessionId: { type: String, required: true },
+    type: { type: String, required: true },
+    severity: { type: Number, required: true, min: 1, max: 5 },
+    timestamp: { type: Date, required: true },
+    details: { type: Object, default: {} },
+    screenshotPath: { type: String },
+    audioPath: { type: String },
+    reviewed: { type: Boolean, default: false },
+    decision: { type: String, enum: ["pending", "confirmed", "dismissed"], default: "pending" },
+    reviewNote: { type: String, default: "" }
+}, { timestamps: true });
+
+// High-Concurrency Compound Indexes
+violationSchema.index({ sessionId: 1, timestamp: -1 });
+violationSchema.index({ reviewed: 1 });
+violationSchema.index({ sessionId: 1, reviewed: 1 });
+
+module.exports = mongoose.model('Violation', violationSchema);`,
+      explanation: 'Optimized Mongoose schema with targeted compound and single-field indexes for sub-millisecond triage queries.'
     }
   }
 ];

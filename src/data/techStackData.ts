@@ -56,7 +56,7 @@ export const techStackData: TechStackCategory[] = [
     ],
     dataFlowMechanisms: [
       'Candidate Ingestion: Open machine-to-machine POST /violation and POST /sessions endpoints allow Electron clients to stream data without instructor login barrier',
-      'Examiner Protection: requireAuth middleware checks Bearer JWT and queries PostgreSQL teacher record',
+      'Examiner Protection: requireAuth middleware checks Bearer JWT and queries MongoDB Teacher record',
       'Scoring Strategy Delegation: SeverityEngine delegates to DecayScoringStrategy (lambda=0.0231/min) to calculate real-time score [0-100]'
     ],
     concurrencyAndEfficiency: [
@@ -66,23 +66,24 @@ export const techStackData: TechStackCategory[] = [
   },
   {
     layer: 'Database & Persistent Storage',
-    name: 'PostgreSQL Relational Database (with MongoDB Historical Parity)',
-    role: 'ACID-compliant relational persistence for exams, sessions, violations, submissions, messages, and audit trails',
+    name: 'MongoDB NoSQL Database + Mongoose ODM',
+    role: 'High-throughput document persistence for exams, sessions, violations, submissions, messages, and audit trails',
     keyPackages: [
-      { name: 'pg (node-postgres) / Drizzle', version: '^8.13.0', purpose: 'High-performance PostgreSQL client with connection pooling' },
-      { name: 'crypto', version: 'built-in', purpose: 'SHA-256 token hashing and UUID generation' }
+      { name: 'mongoose', version: '^8.9.0', purpose: 'Object Document Mapper (ODM) providing schema validation and hooks' },
+      { name: 'mongodb', version: '^6.12.0', purpose: 'Core native MongoDB connection driver with connection pooling' },
+      { name: 'cloudinary', version: '^2.5.1', purpose: 'Cloud asset storage CDN for screenshots, verification selfies, and audio evidence' }
     ],
     whyChosen: [
-      'Strict relational integrity: Foreign keys (session_id REFERENCES sessions, exam_id REFERENCES exams) guarantee zero orphaned violations or submissions',
-      'ACID transactions: critical during exam submission and batch paper release to guarantee exam clock synchronization',
-      'Compound B-Tree Indexes: optimizes high-frequency multi-student sorting queries down to <2ms execution time',
-      'JSONB flexibility: stores dynamic violation details (confidence, euler angles, audio similarity) without sacrificing relational guarantees'
+      'Document Model: naturally models deeply-nested violation telemetry (details, confidence, euler angles, audio similarity) as native BSON documents',
+      'High-Concurrency Telemetry Writes: handles burst write traffic from 40+ concurrent candidates with sub-25ms document insertion latency',
+      'Compound B-Tree Indexes: optimizes high-frequency multi-student sorting queries ({ sessionId: 1, timestamp: -1 }, { reviewed: 1 }) down to <2ms execution time',
+      'Mongoose Schema Validation: enforces strict field typing, enum constraints, pre-save hooks, and population references across collections'
     ],
     dataFlowMechanisms: [
-      'idx_violations_session_time on (session_id, timestamp DESC) for sub-millisecond candidate timeline reconstruction',
-      'idx_violations_reviewed on (reviewed) for instant cross-student priority queue triage queries',
-      'idx_sessions_exam_status on (exam_id, status) for live examiner active roster lookups',
-      'Audit Trail: records all authentication attempts and lockouts in auth_audit_logs with IP and user-agent'
+      'sessionId_1_timestamp_-1 on (sessionId, timestamp DESC) for sub-millisecond candidate timeline reconstruction',
+      'reviewed_1 on (reviewed) for instant cross-student Priority Queue triage queries',
+      'examId_1_status_1 on (examId, status) for live examiner active roster lookups',
+      'Audit Trail: records all authentication attempts and exam lifecycle actions in auditlogs collection'
     ],
     concurrencyAndEfficiency: [
       'Connection pooling (max 25 connections) prevents DB socket starvation during sudden violation bursts',

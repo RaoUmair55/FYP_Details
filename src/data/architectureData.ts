@@ -17,7 +17,7 @@ export const dataFlowSteps: DataFlowStep[] = [
     destination: 'Backend Server (Express / Node.js)',
     protocol: 'HTTPS POST /sessions',
     payload: '{ studentName, rollNumber, examId, consentGiven: true, startTime }',
-    description: 'Candidate reviews Section 10.4 Data Ethics notice, checks mandatory consent, and enters institutional roll number. Electron creates a verified proctoring session in PostgreSQL.',
+    description: 'Candidate reviews Section 10.4 Data Ethics notice, checks mandatory consent, and enters institutional roll number. Electron creates a verified proctoring session in MongoDB.',
     securityControls: ['Roll number regex validation', 'Consent checkbox enforcement', 'Duplicate session rejection (409 Conflict)']
   },
   {
@@ -73,11 +73,11 @@ export const dataFlowSteps: DataFlowStep[] = [
   {
     stepNumber: 7,
     phase: 'Risk Calculation & Live Triage Broadcast',
-    source: 'Backend Server (Express / PostgreSQL)',
+    source: 'Backend Server (Express / MongoDB)',
     destination: 'Examiner Dashboard (React)',
     protocol: 'WebSocket Event ("violation") & ("riskScoreUpdate")',
     payload: '{ violation, updatedRiskScore: 0-100, studentName, rollNumber }',
-    description: 'Server persists violation into PostgreSQL, evaluates exponential decay formula S(t) = S0 * exp(-lambda*dt), and broadcasts alert to examiner Priority Queue.',
+    description: 'Server persists violation into MongoDB, evaluates exponential decay formula S(t) = S0 * exp(-lambda*dt), and broadcasts alert to examiner Priority Queue.',
     securityControls: ['Indexed query plans (<2ms IXSCAN)', 'Examiner exam-scoping (createdBy isolation)', 'Cross-student severity sorting']
   },
   {
