@@ -15,12 +15,14 @@ import {
   ChevronRight,
   ShieldAlert,
   Terminal,
-  FileText
+  FileText,
+  Rotate3d
 } from 'lucide-react';
 import { MathFormula } from '../common/MathFormula';
+import { ProctoringVisualizer3D } from '../3d/ProctoringVisualizer3D';
 
 export const SimulatorsView: React.FC = () => {
-  const [activeLab, setActiveLab] = useState<'decay' | 'whitelist' | 'voice' | 'priority-queue'>('decay');
+  const [activeLab, setActiveLab] = useState<'decay' | 'whitelist' | 'voice' | 'priority-queue' | 'face-mesh-3d'>('decay');
 
   /* -------------------------------------------------------------
      LAB 1: DYNAMIC RISK EXPONENTIAL DECAY SIMULATOR
@@ -310,6 +312,17 @@ export const SimulatorsView: React.FC = () => {
             }`}
           >
             4. Priority Queue & Grouping
+          </button>
+          <button
+            onClick={() => setActiveLab('face-mesh-3d')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+              activeLab === 'face-mesh-3d'
+                ? 'bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-sm'
+                : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
+            }`}
+          >
+            <Rotate3d className="w-3.5 h-3.5 text-blue-500" />
+            <span>5. 3D FaceMesh & Pose Lab</span>
           </button>
         </div>
       </div>
@@ -834,6 +847,36 @@ export const SimulatorsView: React.FC = () => {
                 );
               })}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* LAB 5: 3D FACEMESH & HEAD POSE LAB */}
+      {activeLab === 'face-mesh-3d' && (
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-neutral-900/70 backdrop-blur-xl p-6 sm:p-8 space-y-6 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-100 dark:border-neutral-800 pb-4">
+              <div>
+                <span className="text-xs font-mono font-semibold text-blue-600 dark:text-blue-400 uppercase">
+                  Module 02 · 3D Spatial Computer Vision & solvePnP Invariants
+                </span>
+                <h3 className="text-lg font-bold text-neutral-900 dark:text-white mt-0.5">
+                  MediaPipe 468-Point Mesh & Virtual Camera Frustum
+                </h3>
+              </div>
+              <span className="text-xs text-neutral-500 font-mono">
+                WebGL Point Cloud & Frustum Cone
+              </span>
+            </div>
+
+            <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
+              This interactive Three.js laboratory simulates how the local Python daemon processes facial geometry. 
+              The 3D point cloud represents the MediaPipe FaceMesh landmarks. The forward arrow represents the head pose gaze vector. 
+              When candidate yaw exceeds ±28° or pitch tilts above 22°, the bounding frustum reacts with real-time visual alerts.
+            </p>
+
+            {/* Embedded 3D Component */}
+            <ProctoringVisualizer3D />
           </div>
         </div>
       )}

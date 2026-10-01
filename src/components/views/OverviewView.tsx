@@ -15,9 +15,12 @@ import {
   Volume2, 
   Eye, 
   FileText,
-  Activity
+  Activity,
+  Sparkles,
+  Rotate3d
 } from 'lucide-react';
 import { benchmarkMetrics } from '../../data/databaseSchema';
+import { ProctoringVisualizer3D } from '../3d/ProctoringVisualizer3D';
 
 interface OverviewViewProps {
   onNavigateTab: (tab: ActiveTab) => void;
@@ -28,7 +31,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigateTab, onSel
   return (
     <div className="space-y-12 py-6">
       {/* Hero Section */}
-      <section className="relative overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/60 p-8 sm:p-10 lg:p-12 shadow-sm">
+      <section className="relative overflow-hidden rounded-3xl border border-white/40 dark:border-white/10 bg-white/75 dark:bg-neutral-900/75 backdrop-blur-2xl p-8 sm:p-10 lg:p-12 shadow-xl transition-all duration-300">
         <div className="max-w-4xl space-y-6">
           <div className="flex items-center gap-2 text-xs font-semibold tracking-wider text-blue-600 dark:text-blue-400 uppercase">
             <span>Final Year Project (FYP)</span>
@@ -128,7 +131,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigateTab, onSel
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Tier 1: Candidate App */}
-          <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/50 p-6 flex flex-col justify-between hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors">
+          <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-neutral-900/70 backdrop-blur-xl p-6 flex flex-col justify-between hover:border-blue-400/50 hover:shadow-xl transition-all duration-300 group">
             <div className="space-y-4">
               <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                 <Laptop className="w-5 h-5" />
@@ -174,7 +177,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigateTab, onSel
           </div>
 
           {/* Tier 2: Backend Application Server */}
-          <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/50 p-6 flex flex-col justify-between hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors">
+          <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-neutral-900/70 backdrop-blur-xl p-6 flex flex-col justify-between hover:border-emerald-400/50 hover:shadow-xl transition-all duration-300 group">
             <div className="space-y-4">
               <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                 <Server className="w-5 h-5" />
@@ -220,7 +223,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigateTab, onSel
           </div>
 
           {/* Tier 3: Examiner Command Center */}
-          <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/50 p-6 flex flex-col justify-between hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors">
+          <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-neutral-900/70 backdrop-blur-xl p-6 flex flex-col justify-between hover:border-indigo-400/50 hover:shadow-xl transition-all duration-300 group">
             <div className="space-y-4">
               <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
                 <Monitor className="w-5 h-5" />
@@ -267,6 +270,26 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigateTab, onSel
         </div>
       </section>
 
+      {/* 3D Spatial Computer Vision Landmark Visualizer (Three.js) */}
+      <section className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <div className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Rotate3d className="w-4 h-4" />
+              <span>Interactive 3D Spatial Computer Vision</span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 dark:text-white mt-1">
+              Live MediaPipe 468-Point Mesh & 3D Pose Frustum
+            </h2>
+          </div>
+          <span className="text-xs text-neutral-500 font-mono">
+            solvePnP Euler Angles · In-Memory Analysis Only
+          </span>
+        </div>
+
+        <ProctoringVisualizer3D />
+      </section>
+
       {/* Deep-Dive Architectural Highlights Grid */}
       <section className="space-y-6">
         <div>
@@ -280,7 +303,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigateTab, onSel
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Innovation 1: Whitelist & Pre-Existing Notes Guard */}
-          <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/40 p-6 space-y-3">
+          <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-neutral-900/70 backdrop-blur-xl p-6 space-y-3 hover:shadow-lg transition-all duration-300">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400">
                 <Lock className="w-5 h-5" />
@@ -309,7 +332,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigateTab, onSel
           </div>
 
           {/* Innovation 2: Two-Stage Acoustic Pipeline */}
-          <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/40 p-6 space-y-3">
+          <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-neutral-900/70 backdrop-blur-xl p-6 space-y-3 hover:shadow-lg transition-all duration-300">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400">
                 <Volume2 className="w-5 h-5" />
@@ -338,7 +361,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigateTab, onSel
           </div>
 
           {/* Innovation 3: Dynamic Exponential Severity Decay */}
-          <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/40 p-6 space-y-3">
+          <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-neutral-900/70 backdrop-blur-xl p-6 space-y-3 hover:shadow-lg transition-all duration-300">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
                 <Activity className="w-5 h-5" />
@@ -367,7 +390,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigateTab, onSel
           </div>
 
           {/* Innovation 4: Disk-Backed Offline Violation Buffer */}
-          <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/40 p-6 space-y-3">
+          <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-neutral-900/70 backdrop-blur-xl p-6 space-y-3 hover:shadow-lg transition-all duration-300">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400">
                 <Zap className="w-5 h-5" />
